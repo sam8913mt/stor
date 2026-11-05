@@ -18,20 +18,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
+      # Optional public Supabase client settings. If unset, the app shows its setup state
+      # rather than preventing the static site from being built and published.
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v4
-      - name: Require Supabase repository secrets
-        run: |
-          test -n "$VITE_SUPABASE_URL" || { echo "::error::Secret VITE_SUPABASE_URL is not set"; exit 1; }
-          test -n "$VITE_SUPABASE_ANON_KEY" || { echo "::error::Secret VITE_SUPABASE_ANON_KEY is not set"; exit 1; }
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
-      # `npm run build` = `tsc --noEmit && vite build`: any type error or build error fails this job,
-      # and the deploy job below never runs (it `needs` this job).
+          cache: npm
+      - run: npm ci --no-audit --no-fund
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
