@@ -1,0 +1,32 @@
+/* Admin: same palette, denser and more utilitarian. */
+.admin { min-height: 100vh; background: var(--ivory); font-size: 14px; }
+.admin__bar { display: flex; align-items: center; gap: 18px; padding: 0 20px; height: 56px; background: var(--ivory); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 30; }
+.admin__who { margin-inline-start: auto; font-size: 13px; direction: ltr; } .admin__burger { display: none; }
+.admin__body { display: grid; grid-template-columns: 230px minmax(0, 1fr); min-height: calc(100vh - 56px); }
+.admin__nav { display: grid; align-content: start; gap: 2px; padding: 20px 12px; border-inline-end: 1px solid var(--line); background: var(--bone); }
+.admin__nav a { padding: 9px 14px; } .admin__nav a:hover { background: rgba(255, 255, 255, .5); } .admin__nav a.active { background: var(--black); color: var(--ivory); }
+.admin__main { padding: 28px clamp(16px, 3vw, 40px) 80px; min-width: 0; display: grid; gap: 20px; align-content: start; }
+.ahead { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; } .ahead__tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; } .ahead__tools .input, .ahead__tools .select { width: 220px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); background: rgba(255, 255, 255, .35); }
+.table { width: 100%; border-collapse: collapse; min-width: 560px; } .table th, .table td { text-align: start; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.table th { font-weight: 500; font-size: 13px; color: var(--stone); background: var(--bone); white-space: nowrap; } .table tr:last-child td { border-bottom: 0; }
+.table .actions, .actions { display: flex; gap: 14px; align-items: center; } .clickable { cursor: pointer; } .clickable:hover td { background: rgba(255, 255, 255, .6); } .bad { color: var(--danger); font-weight: 500; }
+.table--vars { min-width: 820px; } .table--vars .input { min-height: 36px; padding: 4px 8px; min-width: 90px; } .table--vars input[type='color'] { width: 40px; height: 34px; border: 1px solid var(--line); padding: 2px; background: none; }
+.panel { background: rgba(255, 255, 255, .45); border: 1px solid var(--line); padding: 20px; display: grid; gap: 12px; align-content: start; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; } .kpis > div { border: 1px solid var(--line); padding: 18px; display: grid; gap: 4px; background: rgba(255, 255, 255, .45); } .kpis strong { font-size: 22px; font-weight: 300; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.bars { width: 100%; height: 200px; fill: var(--charcoal); border-bottom: 1px solid var(--line); } .bars rect:hover { fill: var(--taupe); }
+.totals { display: flex; gap: 18px; flex-wrap: wrap; justify-content: flex-end; padding-block: 8px; }
+.imgs { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; } .imgs figure { display: grid; gap: 4px; width: 110px; } .imgs img { width: 110px; height: 146px; object-fit: cover; }
+.modal { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 16px; } .modal__scrim { position: absolute; inset: 0; background: rgba(26, 24, 22, .45); }
+.modal__box { position: relative; background: var(--ivory); width: min(560px, 100%); max-height: 92vh; overflow-y: auto; padding: 24px; display: grid; gap: 18px; } .modal__box--wide { width: min(860px, 100%); }
+.modal__top { display: flex; justify-content: space-between; align-items: center; }
+@media (max-width: 860px) {
+  .admin__burger { display: inline-flex; } .admin__body { grid-template-columns: 1fr; } .admin__who { display: none; }
+  .admin__nav { display: none; position: fixed; top: 56px; inset-inline: 0; bottom: 0; z-index: 25; overflow-y: auto; } .admin__nav.is-open { display: grid; }
+  .ahead__tools .input, .ahead__tools .select { width: 100%; } .admin__bar .link:not(:last-child) { display: none; }
+}
+
+[dir='ltr'] .admin__who { direction: ltr; }
+.admin__bar .langsw { margin-inline-start: 0; }
+@media (max-width: 860px) { .admin__main { padding-inline: 14px; } .kpis { grid-template-columns: 1fr 1fr; } .table th, .table td { padding: 9px 10px; } }

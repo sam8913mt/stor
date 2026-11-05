@@ -1,0 +1,32 @@
+# dependencies & build output
+node_modules/
+dist/
+.vite/
+.cache/
+*.tsbuildinfo
+
+# secrets — never commit these (only .env.example is tracked)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+supabase/.env
+supabase/.env.*
+.secrets
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+supabase/.volumes/
+
+# logs, OS & editor files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+coverage/
+tmp/
+*.local
