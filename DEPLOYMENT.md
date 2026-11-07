@@ -70,7 +70,8 @@ Commit and push to `main`; the same workflow redeploys. Database changes: add a 
 |---|---|
 | Workflow: "Secret … is not set" | step 3 not done or typo in the secret name |
 | Workflow fails at `npm run build` | read the `tsc` or Vite error in the log; fix and push |
-| Blank page, red "Supabase is not configured" banner | secrets were empty at build time → set them and re-run the workflow |
+| Blank/white page | (1) Settings → Pages → Source must be **GitHub Actions** — "Deploy from a branch" serves the unbuilt `index.html` and shows nothing; (2) the latest *Deploy to GitHub Pages* run must be green; (3) `package.json` and `.github/` must be at the **repository root** (not inside a sub-folder); (4) open F12 → Console for the exact error. The page now shows a bilingual explanation after ~6 s instead of staying blank |
+| Red "Supabase is not configured" banner | the two secrets are empty/malformed at build time → fix `VITE_SUPABASE_URL` (`https://YOUR-REF.supabase.co`) and `VITE_SUPABASE_ANON_KEY` and re-run the workflow (a malformed URL used to crash the whole app; it is now tolerated) |
 | Pages shows 404 | Pages source not set to *GitHub Actions* (step 4), or first deploy not finished |
 | Images/fonts missing | check you opened the Pages URL, not the repo URL |
 | Login works but admin says "No access" | account not yet made admin (`ADMIN_SETUP.md`) — sign out/in after |

@@ -32,7 +32,7 @@ export function SetupNotice() {
   if (isConfigured) return null;
   return (
     <div className="setup" role="alert" dir="ltr">
-      Supabase is not configured. Copy <code>.env.example</code> to <code>.env</code> and set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> (see README).
+      Supabase is not configured or the URL/key is malformed. GitHub: Settings → Secrets and variables → Actions → VITE_SUPABASE_URL (https://YOUR-REF.supabase.co) and VITE_SUPABASE_ANON_KEY (anon public key), then re-run “Deploy to GitHub Pages”. Local: copy <code>.env.example</code> to <code>.env</code>.
     </div>
   );
 }

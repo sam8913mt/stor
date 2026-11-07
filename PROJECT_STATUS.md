@@ -61,3 +61,15 @@ Cron `17 3 */3 * *` (UTC, every 3rd day of month; best-effort, not exact 72 h) +
 | YAML valid; triggers/cron fields/permissions/timeout inspected | **Executed** |
 | The workflow's shell step run unchanged against the real keep-alive handler (Supabase stubbed) over local HTTPS: valid → success; wrong secret (401), DB error (503), http:// URL, missing secret, missing URL, unreachable host, hanging server (curl 28 after ~50 s) → all fail; secret/host never in output | **Executed** (8/8) |
 | Actual GitHub-hosted run, GitHub cron firing, real Supabase function | **Untested** — needs your repo secrets (`KEEP_ALIVE_SETUP.md`) |
+
+## Real-browser test (Chromium via Playwright) — white-page investigation
+The built-style site (esbuild bundle + the project's real `index.html`, served under a sub-path like GitHub Pages: `/REPO/`) was run in headless Chromium. **Stand-ins used:** a hand-written hash router (not react-router-dom), an in-memory Supabase fake, React 19 (project pins 18). So this proves the app's own code and `index.html` behave in a real browser; it does **not** prove react-router-dom, supabase-js, Vite output or GitHub Pages themselves.
+| Scenario | Result |
+|---|---|
+| New `index.html`, Google Fonts requests hanging (blocked/slow network): first paint, hero, 4 product cards, ivory theme, no console/page errors | **pass** (first paint in ~0.1 s) |
+| Routes `#/shop`, `#/product/…`, `#/cart`, `#/login`, `#/collections`, `#/checkout`, `#/p/about`, unknown route; add-to-cart → cart line | **pass** |
+| **Previous** `index.html` (render-blocking Google Fonts stylesheet), same hanging network | **no first paint within 9 s → white page reproduced** (this was a real cause) |
+| Empty Supabase config | app renders + setup banner (no crash) |
+| Unbuilt `index.html` served raw (Pages "Deploy from a branch") | explanatory bilingual message appears instead of a white page |
+| English mode | `dir=ltr`, `lang=en`, English navigation |
+Still **untested:** real `npm install`/`tsc`/`vite build`, react-router-dom/supabase-js at runtime, a real GitHub Pages deployment, a real Supabase backend.

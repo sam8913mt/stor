@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// GitHub Pages project site: https://sam8913mt.github.io/stor/
+// Relative base + HashRouter => works on any GitHub Pages path without a 404 hack.
 export default defineConfig({
-  base: '/stor/',
+  base: './',
   plugins: [react()],
   build: { sourcemap: false, chunkSizeWarningLimit: 700 },
 });

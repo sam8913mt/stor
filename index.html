@@ -7,12 +7,34 @@
     <title>ARAM</title>
     <meta name="description" content="ARAM — quiet luxury fashion." />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@300;400;500&family=Vazirmatn:wght@200;300;400;500;600&display=swap" rel="stylesheet" />
+    <!-- Fonts are loaded WITHOUT blocking the first paint: if fonts.googleapis.com is slow or blocked the site still shows (system fonts). -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@300;400;500&family=Vazirmatn:wght@200;300;400;500;600&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@300;400;500&family=Vazirmatn:wght@200;300;400;500;600&display=swap" /></noscript>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Fallback diagnostics: if the app has not rendered after a few seconds (or a script fails to load), show why instead of a blank page.
+      (function () {
+        function show(detail) {
+          var root = document.getElementById('root');
+          if (!root || root.children.length) return;
+          var box = document.createElement('div');
+          box.setAttribute('style', 'max-width:640px;margin:12vh auto;padding:24px;font:15px/1.9 system-ui,Tahoma,sans-serif;color:#35322e');
+          var lines = [
+            'ARAM — the app could not start / برنامه اجرا نشد',
+            'FA: اگر این پیام را می‌بینید یا GitHub Pages فایل‌های ساخته‌نشده را سرو می‌کند (Settings ← Pages ← Source باید «GitHub Actions» باشد و workflow سبز شده باشد)، یا یک Secret (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) اشتباه است. با F12 ← Console علت دقیق را ببینید.',
+            'EN: Either GitHub Pages is serving the unbuilt source (Settings → Pages → Source must be "GitHub Actions" and the deploy workflow must be green), or a secret (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) is wrong. Press F12 → Console for the exact error.'
+          ];
+          if (detail) lines.push('Detail: ' + detail);
+          lines.forEach(function (t, i) { var p = document.createElement(i ? 'p' : 'h1'); p.textContent = t; p.setAttribute('dir', 'auto'); box.appendChild(p); });
+          root.appendChild(box);
+        }
+        window.addEventListener('error', function (e) { if (e && e.target && e.target.tagName && e.target.tagName !== 'SCRIPT') return; setTimeout(function () { show(e && e.message ? String(e.message).slice(0, 200) : ''); }, 300); }, true);
+        window.addEventListener('unhandledrejection', function (e) { setTimeout(function () { show(e && e.reason && e.reason.message ? String(e.reason.message).slice(0, 200) : ''); }, 300); });
+        setTimeout(function () { show(''); }, 6000);
+      })();
+    </script>
     <noscript>This store needs JavaScript enabled.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
