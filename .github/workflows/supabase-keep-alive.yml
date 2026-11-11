@@ -1,0 +1,69 @@
+name: Supabase keep-alive
+
+# Sends one authenticated POST to the existing `keep-alive` Edge Function (supabase/functions/keep-alive).
+# Runs on GitHub's servers, so no computer of yours needs to be on.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   KEEP_ALIVE_URL     full function URL, e.g. https://YOUR_PROJECT_REF.supabase.co/functions/v1/keep-alive
+#   KEEP_ALIVE_SECRET  the same value as the Edge Function secret CRON_SECRET (sent as header `x-cron-secret`)
+#
+# Schedule: minute 17, 03:xx UTC, on every 3rd day of the month (1, 4, 7 … 31), so the gap is at most 3 days.
+# GitHub cron is best-effort: runs can start late, are occasionally skipped under load, and do NOT fall exactly 72 hours apart.
+# Scheduled workflows run only from the default branch and are paused by GitHub after 60 days without repository activity
+# (re-enable in the Actions tab, or push any commit).
+on:
+  schedule:
+    - cron: '17 3 */3 * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: supabase-keep-alive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call the keep-alive Edge Function
+        shell: bash
+        env:
+          KEEP_ALIVE_URL: ${{ secrets.KEEP_ALIVE_URL }}
+          KEEP_ALIVE_SECRET: ${{ secrets.KEEP_ALIVE_SECRET }}
+        run: |
+          if [ -z "${KEEP_ALIVE_URL:-}" ] || [ -z "${KEEP_ALIVE_SECRET:-}" ]; then
+            echo "::error::Repository secrets KEEP_ALIVE_URL and KEEP_ALIVE_SECRET must both be set."
+            exit 1
+          fi
+          # Values come from `secrets.*`, which GitHub masks in logs automatically. Nothing below ever echoes the URL or the secret,
+          # and curl's own error text (which can contain the host name) is suppressed.
+          case "${KEEP_ALIVE_URL}" in
+            https://*) ;;
+            *) echo "::error::KEEP_ALIVE_URL must start with https://"; exit 1 ;;
+          esac
+
+          umask 077
+          headers="$(mktemp)"; body="$(mktemp)"
+          trap 'rm -f "$headers" "$body"' EXIT
+          printf 'x-cron-secret: %s\n' "${KEEP_ALIVE_SECRET}" > "$headers"
+
+          rc=0
+          status="$(curl --silent --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 10 \
+                --request POST --header @"$headers" --header 'Content-Type: application/json' --data '{}' \
+                --output "$body" --write-out '%{http_code}' -- "${KEEP_ALIVE_URL}" 2>/dev/null)" || rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::FAILED: keep-alive request did not complete (curl exit code ${rc}: network error, DNS failure or timeout)."
+            exit 1
+          fi
+
+          case "$status" in
+            2??) ;;
+            *) echo "::error::FAILED: keep-alive returned HTTP ${status}."; exit 1 ;;
+          esac
+          if ! grep -q '"ok":true' "$body"; then
+            echo "::error::FAILED: HTTP ${status} but the response was not {\"ok\":true}."
+            exit 1
+          fi
+          echo "SUCCESS: keep-alive answered HTTP ${status} at $(date -u +%Y-%m-%dT%H:%M:%SZ)."

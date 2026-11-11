@@ -1,0 +1,12 @@
+# Minimal CLI config. Provider callbacks come from payment gateways (no user JWT), so they must skip JWT verification;
+# each of them authenticates the request itself (gateway verify call / Stripe signature).
+project_id = "aram-store"
+
+[functions.payment-callback]
+verify_jwt = false
+[functions.stripe-webhook]
+verify_jwt = false
+[functions.process-email-queue]
+verify_jwt = false
+[functions.keep-alive]
+verify_jwt = false
