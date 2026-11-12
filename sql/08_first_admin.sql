@@ -13,21 +13,23 @@
 
 do $$
 declare
-  v_email   text := 'CHANGE_ME@example.com';   -- <<< EDIT THIS (the only line you need to change)
+  v_email   text := 'CHANGE_ME@example.com';   -- <<< EDIT THIS: the phone (09121234567) or email of the account that already signed up
   v_user    uuid;
   v_role    uuid;
 begin
-  if lower(trim(v_email)) = 'change_me@example.com' or position('@' in v_email) = 0 then
-    raise exception 'Edit v_email first: put the email of the account that already signed up.';
+  if lower(trim(v_email)) = 'change_me@example.com' or length(trim(v_email)) < 6 then
+    raise exception 'Edit v_email first: put the phone number or email of the account that already signed up.';
   end if;
   if to_regprocedure('public.aram_require(text,text)') is null then
     raise exception 'ARAM: the database is not installed yet. Run sql/00_INSTALL_ALL.sql FIRST (it includes the seed data), then run this file.';
   end if;
   perform public.aram_require('0006', null);
 
-  select id into v_user from public.profiles where lower(email) = lower(trim(v_email));
+  select id into v_user from public.profiles
+   where (position('@' in v_email) > 0 and lower(email) = lower(trim(v_email)))
+      or (position('@' in v_email) = 0 and regexp_replace(coalesce(phone, ''), '\D', '', 'g') = regexp_replace(regexp_replace(v_email, '\D', '', 'g'), '^0', '98'));
   if v_user is null then
-    raise exception 'No account with email % exists yet. Sign up on the site (or add the user in Supabase Auth) first, then re-run.', v_email;
+    raise exception 'No account with phone/email % exists yet. Sign up on the site (or add the user in Supabase Auth) first, then re-run.', v_email;
   end if;
 
   select id into v_role from public.admin_roles where name = 'super_admin';

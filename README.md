@@ -10,6 +10,10 @@
 با هر push روی `main` ورک‌فلو `.github/workflows/deploy.yml` سایت را با آدرس‌های تمیز (`/shop`، `/admin`) منتشر می‌کند: `404.html` درخواست‌ها را به `index.html` برمی‌گرداند و `CLEAN_URLS` را خودکار روشن می‌کند. در Settings → Pages منبع را روی **GitHub Actions** بگذارید.
 روی کامپیوتر خودتان (Live Server) `CLEAN_URLS` در `config.js` خاموش است و آدرس‌ها `index.html#/shop` می‌مانند چون Live Server مسیرهای ناشناخته را به `index.html` نمی‌رساند. اگر Edge Functionهای پرداخت دارید و سایت را با `#` اجرا می‌کنید، سکرت `ROUTER_MODE=hash` را در Supabase بگذارید.
 
+## ثبت‌نام با شماره موبایل
+در Supabase: **Authentication ← Providers ← Phone** را روشن کنید و **Enable phone confirmations** را خاموش بگذارید (بدون پیامک؛ اگر پنل ارائه‌دهنده SMS خواست، مقدار نمونه بدهید). ورود با شماره و رمز انجام می‌شود (`09121234567`). حساب‌های قدیمی با ایمیل هم همچنان وارد می‌شوند. اگر دیتابیس را قبلاً نصب کرده‌اید، `sql/11_phone_auth.sql` را یک‌بار اجرا کنید.
+سبد خرید و علاقه‌مندی‌ها برای کاربر مهمان قفل است و دکمه‌های «ورود» و «ثبت‌نام» نشان داده می‌شود. مدیر بعد از ورود (بدون آدرس مقصد) مستقیم به `/admin` می‌رود.
+
 ## دیتابیس
 `sql/00_INSTALL_ALL.sql` را در Supabase → SQL Editor اجرا کنید؛ بعد `SUPABASE_SETUP.md` و `ADMIN_SETUP.md`.
 

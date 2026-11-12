@@ -33,8 +33,7 @@ jobs:
           cp -r index.html 404.html favicon.svg assets admin dist/
           # Supabase values: repository secrets if set, otherwise the committed config.js
           if [ -n "$VITE_SUPABASE_URL" ] && [ -n "$VITE_SUPABASE_ANON_KEY" ]; then
-            printf 'window.ARAM_CONFIG = { SUPABASE_URL: %s, SUPABASE_ANON_KEY: %s };
-' "$(jq -Rn --arg v "$VITE_SUPABASE_URL" '$v')" "$(jq -Rn --arg v "$VITE_SUPABASE_ANON_KEY" '$v')" > dist/config.js
+            jq -rn --arg u "$VITE_SUPABASE_URL" --arg k "$VITE_SUPABASE_ANON_KEY" '"window.ARAM_CONFIG = " + ({SUPABASE_URL: $u, SUPABASE_ANON_KEY: $k} | tojson) + ";"' > dist/config.js
           else
             cp config.js dist/config.js
           fi

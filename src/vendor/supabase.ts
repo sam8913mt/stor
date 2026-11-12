@@ -164,7 +164,7 @@ export function createClient(url: string, key: string, opts?: { auth?: { persist
       const off = core.on(cb);
       return { data: { subscription: { unsubscribe: off } } };
     },
-    async signInWithPassword(c: { email: string; password: string }) {
+    async signInWithPassword(c: { email?: string; phone?: string; password: string }) {
       try {
         const r = await authCall('token?grant_type=password', c);
         if (!r.ok || !r.json?.access_token) return { data: { user: null, session: null }, error: authErr(r.json, r.status) };
@@ -172,9 +172,9 @@ export function createClient(url: string, key: string, opts?: { auth?: { persist
         return { data: { user: s.user, session: s }, error: null };
       } catch (e) { return { data: { user: null, session: null }, error: netErr(e) }; }
     },
-    async signUp(c: { email: string; password: string; options?: { data?: Record<string, unknown> } }) {
+    async signUp(c: { email?: string; phone?: string; password: string; options?: { data?: Record<string, unknown> } }) {
       try {
-        const r = await authCall('signup', { email: c.email, password: c.password, data: c.options?.data ?? {} });
+        const r = await authCall('signup', { ...(c.phone ? { phone: c.phone } : { email: c.email }), password: c.password, data: c.options?.data ?? {} });
         if (!r.ok) return { data: { user: null, session: null }, error: authErr(r.json, r.status) };
         if (r.json?.access_token) { const s = normalise(r.json); core.setSession(s, 'SIGNED_IN'); return { data: { user: s.user, session: s }, error: null }; }
         return { data: { user: r.json?.user ?? r.json, session: null }, error: null };

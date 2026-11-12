@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { AppProviders } from './context';
 import { Layout } from './components/Layout';
-import { RequireAuth } from './components/Guards';
+import { LoginGate, RequireAuth } from './components/Guards';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Loading } from './components/ui';
 import Home from './pages/Home';
@@ -35,10 +35,10 @@ export default function App() {
                 <Route path="collections" element={<Collections />} />
                 <Route path="collections/:slug" element={<Shop pinned />} />
                 <Route path="product/:slug" element={<Product />} />
-                <Route path="cart" element={<Cart />} />
-                <Route path="checkout" element={<Checkout />} />
+                <Route path="cart" element={<LoginGate kind="cart"><Cart /></LoginGate>} />
+                <Route path="checkout" element={<RequireAuth><Checkout /></RequireAuth>} />
                 <Route path="order-success/:number" element={<RequireAuth><OrderSuccess /></RequireAuth>} />
-                <Route path="wishlist" element={<Wishlist />} />
+                <Route path="wishlist" element={<LoginGate kind="wishlist"><Wishlist /></LoginGate>} />
                 <Route path="login" element={<Auth />} />
                 <Route path="account/*" element={<RequireAuth><Account /></RequireAuth>} />
                 <Route path="p/:slug" element={<CmsPage />} />

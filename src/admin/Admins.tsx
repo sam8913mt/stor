@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { q } from '../lib/api';
 import { supabase } from '../lib/supabase';
+import { normalizePhone, showPhone } from '../lib/phone';
 import { useAsync } from '../hooks';
 import { useAuth, useToast } from '../context';
 import { errorFa } from '../lib/format';
@@ -13,13 +14,13 @@ export const PERMS: Record<string, string> = {
   'marketing.manage': tr('aAdmins.5', 'کوپن‌ها'), 'reviews.manage': tr('aAdmins.6', 'نظرات'), 'cms.manage': tr('aAdmins.7', 'محتوا'), 'settings.manage': tr('aAdmins.8', 'تنظیمات'), 'analytics.view': tr('aAdmins.9', 'آمار'), 'logs.view': tr('aAdmins.10', 'گزارش فعالیت‌ها'), 'admins.manage': tr('aAdmins.11', 'مدیران و نقش‌ها'),
 };
 interface Role { id: string; name: string; label_fa: string; permissions: string[] }
-interface AdminRow { user_id: string; role_id: string; profile?: { email: string | null; full_name: string | null } | null; role?: { label_fa: string } | null }
+interface AdminRow { user_id: string; role_id: string; profile?: { email: string | null; phone: string | null; full_name: string | null } | null; role?: { label_fa: string } | null }
 
 export default function Admins() {
   const toast = useToast();
   const { user } = useAuth();
   const roles = useAsync(() => q<Role[]>(supabase.from('admin_roles').select('*').order('name')), []);
-  const admins = useAsync(() => q<AdminRow[]>(supabase.from('admin_users').select('user_id, role_id, profile:profiles(email,full_name), role:admin_roles(label_fa)')), []);
+  const admins = useAsync(() => q<AdminRow[]>(supabase.from('admin_users').select('user_id, role_id, profile:profiles(email,phone,full_name), role:admin_roles(label_fa)')), []);
   const [email, setEmail] = useState('');
   const [roleId, setRoleId] = useState('');
   const [edit, setEdit] = useState<Role | null>(null);
@@ -27,8 +28,11 @@ export default function Admins() {
   const grant = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      const found = await q<{ id: string }[]>(supabase.from('profiles').select('id').ilike('email', email.trim().replace(/[\\%_]/g, (c) => `\\${c}`)));
-      if (!found.length) { toast.push(tr('aAdmins.12', 'کاربری با این ایمیل ثبت‌نام نکرده است. ابتدا باید در فروشگاه ثبت‌نام کند.'), 'err'); return; }
+      const v = email.trim();
+      const phone = v.includes('@') ? null : normalizePhone(v);
+      if (!v.includes('@') && !phone) { toast.push(tr('aAdmins.24', 'شماره یا ایمیل معتبر نیست.'), 'err'); return; }
+      const found = await q<{ id: string }[]>(phone ? supabase.from('profiles').select('id').eq('phone', phone) : supabase.from('profiles').select('id').ilike('email', v.replace(/[\\%_]/g, (c) => `\\${c}`)));
+      if (!found.length) { toast.push(tr('aAdmins.12', 'کاربری با این شماره/ایمیل ثبت‌نام نکرده است. ابتدا باید در فروشگاه ثبت‌نام کند.'), 'err'); return; }
       await q(supabase.from('admin_users').upsert({ user_id: found[0].id, role_id: roleId || roles.data?.[0]?.id }, { onConflict: 'user_id' }));
       toast.push(tr('aAdmins.13', 'دسترسی ثبت شد.')); setEmail(''); admins.reload();
     } catch (err) { toast.push(errorFa((err as Error).message), 'err'); }
@@ -50,12 +54,12 @@ export default function Admins() {
       {admins.loading || roles.loading ? <Loading /> : admins.error || roles.error ? <ErrorBox error={(admins.error ?? roles.error) as string} /> : (
         <>
           <div className="tablewrap"><table className="table">
-            <thead><tr><th>{tr('aAdmins.18', 'مدیر')}</th><th>{tr('aAdmins.19', 'ایمیل')}</th><th>{tr('aAdmins.20', 'نقش')}</th><th /></tr></thead>
-            <tbody>{admins.data?.map((a) => <tr key={a.user_id}><td>{a.profile?.full_name || '—'}</td><td dir="ltr">{a.profile?.email}</td><td>{a.role?.label_fa}</td><td className="actions"><button className="link link--danger" onClick={() => void revoke(a.user_id)}>{tr('aAdmins.21', 'حذف دسترسی')}</button></td></tr>)}</tbody>
+            <thead><tr><th>{tr('aAdmins.18', 'مدیر')}</th><th>{tr('aAdmins.19', 'شماره / ایمیل')}</th><th>{tr('aAdmins.20', 'نقش')}</th><th /></tr></thead>
+            <tbody>{admins.data?.map((a) => <tr key={a.user_id}><td>{a.profile?.full_name || '—'}</td><td dir="ltr">{showPhone(a.profile?.phone) || a.profile?.email}</td><td>{a.role?.label_fa}</td><td className="actions"><button className="link link--danger" onClick={() => void revoke(a.user_id)}>{tr('aAdmins.21', 'حذف دسترسی')}</button></td></tr>)}</tbody>
           </table></div>
           <form className="panel form form--inline" onSubmit={grant}>
             <h2 className="h4">{tr('aAdmins.22', 'افزودن مدیر')}</h2>
-            <input className="input" type="email" required dir="ltr" placeholder={tr('aAdmins.23', 'ایمیل کاربر ثبت‌نام‌شده')} value={email} onChange={(e) => setEmail(e.target.value)} aria-label={tr('aAdmins.24', 'ایمیل')} />
+            <input className="input" required dir="ltr" placeholder={tr('aAdmins.23', 'شماره موبایل یا ایمیل کاربر ثبت‌نام‌شده')} value={email} onChange={(e) => setEmail(e.target.value)} aria-label={tr('aAdmins.24', 'ایمیل')} />
             <select className="select" value={roleId} onChange={(e) => setRoleId(e.target.value)} aria-label={tr('aAdmins.25', 'نقش')}>{roles.data?.map((r) => <option key={r.id} value={r.id}>{r.label_fa}</option>)}</select>
             <button className="btn btn--sm">{tr('aAdmins.26', 'افزودن')}</button>
           </form>

@@ -55,8 +55,8 @@ export function Layout() {
           <Link to="/" className="logo" aria-label={s.store_name}>ARAM</Link>
           <div className="hdr__tools">
             <Link className="icon hide-sm" to={user ? '/account' : '/login'} aria-label={tr('cLayout.7', 'حساب کاربری')}><IconUser /></Link>
-            <Link className="icon badge-wrap" to="/wishlist" aria-label={tr('cLayout.8', 'علاقه‌مندی‌ها')}><IconHeart />{wish.ids.length ? <b className="badge">{wish.ids.length.toLocaleString(LOC)}</b> : null}</Link>
-            <Link className="icon badge-wrap" to="/cart" aria-label={tr('cLayout.9', 'سبد خرید')}><IconBag />{count ? <b className="badge">{count.toLocaleString(LOC)}</b> : null}</Link>
+            <Link className="icon badge-wrap" to="/wishlist" aria-label={tr('cLayout.8', 'علاقه‌مندی‌ها')}><IconHeart />{user && wish.ids.length ? <b className="badge">{wish.ids.length.toLocaleString(LOC)}</b> : null}</Link>
+            <Link className="icon badge-wrap" to="/cart" aria-label={tr('cLayout.9', 'سبد خرید')}><IconBag />{user && count ? <b className="badge">{count.toLocaleString(LOC)}</b> : null}</Link>
           </div>
         </div>
         <div className="hdr__bar"><nav className="hdr__nav" aria-label={tr('cLayout.5', 'اصلی')}>{links}</nav></div>

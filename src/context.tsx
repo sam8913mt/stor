@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, isConfigured } from './lib/supabase';
 import { errorFa } from './lib/format';
+import { normalizePhone } from './lib/phone';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LANG, tr } from './i18n';
 import type { CartLine, Profile } from './types';
 
@@ -31,8 +33,9 @@ function ToastProvider({ children }: { children: ReactNode }) {
 interface AuthCtx {
   user: User | null; session: Session | null; profile: Profile | null; perms: string[]; ready: boolean; permsLoaded: boolean;
   isAdmin: boolean; can: (p: string) => boolean;
-  signIn: (email: string, password: string) => Promise<string | null>;
-  signUp: (email: string, password: string, name: string) => Promise<string | null>;
+  /** identifier = phone number (or an email, for accounts created by email) */
+  signIn: (identifier: string, password: string) => Promise<string | null>;
+  signUp: (phone: string, password: string, name: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -78,14 +81,20 @@ function AuthProvider({ children }: { children: ReactNode }) {
     user: session?.user ?? null, session, profile, perms, ready, permsLoaded,
     isAdmin: perms.length > 0,
     can: (p) => perms.includes('*') || perms.includes(p),
-    signIn: async (email, password) => {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+    signIn: async (identifier, password) => {
+      const id = identifier.trim();
+      if (id.includes('@')) { const { error } = await supabase.auth.signInWithPassword({ email: id, password }); return error ? errorFa(error.message) : null; }
+      const phone = normalizePhone(id);
+      if (!phone) return 'شماره موبایل معتبر نیست. نمونه: 09121234567';
+      const { error } = await supabase.auth.signInWithPassword({ phone, password });
       return error ? errorFa(error.message) : null;
     },
-    signUp: async (email, password, name) => {
-      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    signUp: async (phoneInput, password, name) => {
+      const phone = normalizePhone(phoneInput);
+      if (!phone) return 'شماره موبایل معتبر نیست. نمونه: 09121234567';
+      const { data, error } = await supabase.auth.signUp({ phone, password, options: { data: { full_name: name } } });
       if (error) return errorFa(error.message);
-      return data.session ? null : 'CONFIRM_EMAIL';
+      return data.session ? null : 'CONFIRM_PHONE';
     },
     signOut: async () => { await supabase.auth.signOut(); },
     refreshProfile: async () => { if (uid) await load(uid); },
@@ -213,4 +222,18 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ToastProvider><AuthProvider><SettingsProvider><CartProvider><WishlistProvider>{children}</WishlistProvider></CartProvider></SettingsProvider></AuthProvider></ToastProvider>
   );
+}
+
+
+/** Wrap actions that need an account (add to cart, wishlist): guests are sent to the sign-in page and come back afterwards. */
+export function useGate() {
+  const { user } = useAuth();
+  const nav = useNavigate();
+  const loc = useLocation();
+  const { push } = useToast();
+  return useCallback((action: () => void) => {
+    if (user) { action(); return; }
+    push(tr('cGate.1', 'برای ادامه ابتدا وارد حساب خود شوید.'));
+    nav(`/login?next=${encodeURIComponent(loc.pathname + loc.search)}`);
+  }, [user, nav, loc.pathname, loc.search, push]);
 }

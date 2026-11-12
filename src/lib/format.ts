@@ -58,8 +58,9 @@ export function errorFa(message: string): string {
   if (hit) return ERROR_FA[hit];
   if (message.includes('duplicate key')) return tr('lformat.55', 'این مقدار قبلاً ثبت شده است.');
   if (message.includes('row-level security')) return tr('lformat.56', 'مجوز انجام این کار را ندارید.');
-  if (message.includes('Invalid login')) return tr('lformat.57', 'ایمیل یا رمز عبور درست نیست.');
-  if (message.includes('already registered')) return tr('lformat.58', 'با این ایمیل قبلاً ثبت‌نام شده است.');
+  if (message.includes('Invalid login')) return tr('lformat.57', 'شماره یا رمز عبور درست نیست.');
+  if (message.includes('already registered') || message.includes('already been registered')) return tr('lformat.58', 'با این شماره قبلاً ثبت‌نام شده است. وارد شوید.');
+  if (/phone.*(disabled|not supported|provider)|unsupported phone|sms.*(provider|not)/i.test(message)) return 'ثبت‌نام با شماره در Supabase فعال نیست: Authentication ← Providers ← Phone را روشن کنید و Phone confirmations را خاموش بگذارید.';
   if (message.includes('Password should')) return tr('lformat.59', 'رمز عبور باید حداقل ۶ نویسه باشد.');
   return message;
 }

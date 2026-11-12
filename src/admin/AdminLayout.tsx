@@ -4,6 +4,7 @@ import { useAuth } from '../context';
 import { LangSwitch, Loading } from '../components/ui';
 import { IconClose, IconMenu } from '../components/Icons';
 import { tr } from '../i18n';
+import { showPhone } from '../lib/phone';
 
 const NAV: { to: string; label: string; perm: string; end?: boolean }[] = [
   { to: '/admin', label: tr('aAdminLayout.1', 'داشبورد'), perm: 'analytics.view', end: true },
@@ -35,7 +36,7 @@ export function AdminLayout() {
       <header className="admin__bar">
         <button className="icon admin__burger" aria-label={tr('aAdminLayout.18', 'منو')} onClick={() => setOpen(!open)}>{open ? <IconClose /> : <IconMenu />}</button>
         <strong className="logo logo--sm">{tr('aAdminLayout.19', 'ARAM · مدیریت')}</strong>
-        <span className="muted admin__who">{profile?.email}</span>
+        <span className="muted admin__who">{showPhone(profile?.phone) || profile?.email}</span>
         <LangSwitch />
         <Link className="link" to="/">{tr('aAdminLayout.20', 'مشاهده فروشگاه')}</Link>
         <button className="link" onClick={() => void signOut()}>{tr('aAdminLayout.21', 'خروج')}</button>

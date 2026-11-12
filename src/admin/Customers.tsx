@@ -6,6 +6,7 @@ import { LOC, tr } from '../i18n';
 import { dateFa, price } from '../lib/format';
 import { ErrorBox, Loading, Pager } from '../components/ui';
 import { Can, PageHead } from './ui';
+import { showPhone } from '../lib/phone';
 import type { Profile } from '../types';
 
 const PER = 25;
@@ -31,9 +32,9 @@ export default function Customers() {
       {loading && !data ? <Loading /> : error ? <ErrorBox error={error} retry={reload} /> : (
         <>
           <div className="tablewrap"><table className="table">
-            <thead><tr><th>{tr('aCustomers.4', 'نام')}</th><th>{tr('aCustomers.5', 'ایمیل')}</th><th>{tr('aCustomers.6', 'تلفن')}</th><th>{tr('aCustomers.7', 'عضویت')}</th><th>{tr('aCustomers.8', 'سفارش‌ها')}</th><th>{tr('aCustomers.9', 'مجموع خرید')}</th></tr></thead>
+            <thead><tr><th>{tr('aCustomers.4', 'نام')}</th><th>{tr('aCustomers.6', 'شماره موبایل')}</th><th>{tr('aCustomers.5', 'ایمیل')}</th><th>{tr('aCustomers.7', 'عضویت')}</th><th>{tr('aCustomers.8', 'سفارش‌ها')}</th><th>{tr('aCustomers.9', 'مجموع خرید')}</th></tr></thead>
             <tbody>
-              {data?.rows.map((p) => <tr key={p.id}><td>{p.full_name || '—'}</td><td dir="ltr">{p.email}</td><td dir="ltr">{p.phone || '—'}</td><td>{dateFa(p.created_at)}</td><td>{p.n.toLocaleString(LOC)}</td><td>{price(p.sum)}</td></tr>)}
+              {data?.rows.map((p) => <tr key={p.id}><td>{p.full_name || '—'}</td><td dir="ltr">{showPhone(p.phone) || '—'}</td><td dir="ltr">{p.email || '—'}</td><td>{dateFa(p.created_at)}</td><td>{p.n.toLocaleString(LOC)}</td><td>{price(p.sum)}</td></tr>)}
               {!data?.rows.length ? <tr><td colSpan={6} className="muted">{tr('aCustomers.10', 'مشتری‌ای پیدا نشد.')}</td></tr> : null}
             </tbody>
           </table></div>

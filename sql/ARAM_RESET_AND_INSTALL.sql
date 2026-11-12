@@ -34,7 +34,7 @@ end $reset$;
 -- + final verification table.  FRESH Supabase project only.  Paste the WHOLE file in SQL Editor → Run → wait for the table.
 --
 -- OPTIONAL — make yourself super admin in the same run: sign up on the site FIRST, then put that email in v_email in the
--- block marked "FIRST ADMIN" near the end of this file. If it is left empty (or the account does not exist yet) this step
+-- block marked "FIRST ADMIN" near the end of this file (a phone number like 09121234567 or an email both work). If it is left empty (or the account does not exist yet) this step
 -- is skipped with a notice and the rest installs normally; run sql/08_first_admin.sql later instead.
 -- Not included on purpose: 10_keep_alive.sql (needs Vault secrets + a deployed Edge Function, see KEEP_ALIVE_SETUP.md).
 -- =====================================================================================================================
@@ -315,8 +315,10 @@ $$;
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, email, full_name)
-  values (new.id, new.email, left(coalesce(new.raw_user_meta_data->>'full_name', ''), 120));
+  insert into public.profiles (id, email, full_name, phone)
+  values (new.id, nullif(new.email, ''), left(coalesce(new.raw_user_meta_data->>'full_name', ''), 120),
+          case when coalesce(new.phone, '') <> '' then '+' || ltrim(new.phone, '+') end)
+  on conflict (id) do nothing;
   return new;
 end $$;
 drop trigger if exists on_auth_user_created on auth.users;
@@ -985,17 +987,20 @@ where slug in ('long-wool-coat','silk-blend-blazer','linen-shirt','satin-blouse'
 insert into public.aram_migrations (version) values ('seed') on conflict do nothing;
 
 -- Existing sign-ups (made before the install) get their profile row too
-insert into public.profiles (id, email, full_name)
-  select id, email, left(coalesce(raw_user_meta_data->>'full_name', ''), 120) from auth.users on conflict (id) do nothing;
+insert into public.profiles (id, email, full_name, phone)
+  select id, nullif(email, ''), left(coalesce(raw_user_meta_data->>'full_name', ''), 120), case when coalesce(phone, '') <> '' then '+' || ltrim(phone, '+') end
+  from auth.users on conflict (id) do nothing;
 
 -- ───────────────────────────────────────── FIRST ADMIN (optional) ─────────────────────────────────────────
 do $$
 declare
-  v_email text := '';          -- <<< OPTIONAL: email of an account that has ALREADY signed up on the site
+  v_email text := '';          -- <<< OPTIONAL: phone (09121234567) or email of an account that has ALREADY signed up on the site
   v_user uuid; v_role uuid;
 begin
   if trim(v_email) = '' then raise notice 'First admin skipped (v_email is empty). Run 08_first_admin.sql after signing up.'; return; end if;
-  select id into v_user from public.profiles where lower(email) = lower(trim(v_email));
+  select id into v_user from public.profiles
+   where (position('@' in v_email) > 0 and lower(email) = lower(trim(v_email)))
+      or (position('@' in v_email) = 0 and regexp_replace(coalesce(phone, ''), '\D', '', 'g') = regexp_replace(regexp_replace(v_email, '\D', '', 'g'), '^0', '98'));
   select id into v_role from public.admin_roles where name = 'super_admin';
   if v_user is null then raise notice 'First admin skipped: no account with email % yet. Sign up, then run 08_first_admin.sql.', v_email; return; end if;
   insert into public.admin_users (user_id, role_id) values (v_user, v_role) on conflict (user_id) do nothing;

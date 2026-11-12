@@ -1,3 +1,4 @@
+import { showPhone } from '../lib/phone';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, Route, Routes, useSearchParams } from 'react-router-dom';
 import { q } from '../lib/api';
@@ -23,7 +24,7 @@ function ProfileForm() {
   };
   return (
     <form className="form form--narrow" onSubmit={save}>
-      <label>{tr('pAccount.2', 'ایمیل')}<input className="input" dir="ltr" value={user?.email ?? ''} disabled /></label>
+      <label>{user?.email ? tr('pAccount.2', 'ایمیل') : tr('pAccount.19', 'شماره ورود')}<input className="input" dir="ltr" value={user?.email || showPhone(profile?.phone) || ''} disabled /></label>
       <label>{tr('pAccount.3', 'نام و نام خانوادگی')}<input className="input" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} /></label>
       <label>{tr('pAccount.4', 'تلفن همراه')}<input className="input" dir="ltr" maxLength={30} value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
       <button className="btn btn--sm">{tr('pAccount.5', 'ذخیره تغییرات')}</button>

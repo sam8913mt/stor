@@ -5,7 +5,7 @@ import { activeVariants, fetchProductBySlug, q, searchProducts, variantPrice } f
 import { supabase } from '../lib/supabase';
 import { useAsync, useTitle } from '../hooks';
 import { errorFa, dateFa, price } from '../lib/format';
-import { useAuth, useCart, useToast, useWishlist } from '../context';
+import { useAuth, useCart, useGate, useToast, useWishlist } from '../context';
 import { ProductVisual, ProductGrid } from '../components/ProductCard';
 import { Crumbs, Empty, ErrorBox, Loading } from '../components/ui';
 import { IconHeart, IconMinus, IconPlus } from '../components/Icons';
@@ -29,6 +29,7 @@ export default function Product() {
   const [view, setView] = useState(0);
   const cart = useCart();
   const wish = useWishlist();
+  const gate = useGate();
   const toast = useToast();
   useTitle(p ? lf(p, 'title') : tr('pProduct.2', 'محصول'));
 
@@ -100,8 +101,8 @@ export default function Product() {
               <span>{qty.toLocaleString(LOC)}</span>
               <button onClick={() => setQty((n) => Math.min(10, n + 1))} aria-label={tr('pProduct.18', 'زیاد کردن')}><IconPlus /></button>
             </div>
-            <button className="btn btn--grow" onClick={add} disabled={!vs.length || vs.every((v) => v.stock === 0)}>{tr('pProduct.19', 'افزودن به سبد خرید')}</button>
-            <button className={`btn btn--ghost btn--icon${liked ? ' is-on' : ''}`} onClick={() => void wish.toggle(p.id)} aria-pressed={liked} aria-label={tr('pProduct.20', 'علاقه‌مندی')}><IconHeart /></button>
+            <button className="btn btn--grow" onClick={() => gate(add)} disabled={!vs.length || vs.every((v) => v.stock === 0)}>{tr('pProduct.19', 'افزودن به سبد خرید')}</button>
+            <button className={`btn btn--ghost btn--icon${liked ? ' is-on' : ''}`} onClick={() => gate(() => void wish.toggle(p.id))} aria-pressed={liked} aria-label={tr('pProduct.20', 'علاقه‌مندی')}><IconHeart /></button>
           </div>
 
           <div className="acc">

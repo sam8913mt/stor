@@ -5,6 +5,7 @@ import { LOC, lf, tr } from '../i18n';
 import { useSettings } from '../context';
 import { ProductGrid } from '../components/ProductCard';
 import { Placeholder } from '../components/Placeholder';
+import { IconLeaf, IconShield, IconTruck } from '../components/Icons';
 import { ErrorBox, Loading, Section } from '../components/ui';
 import { price } from '../lib/format';
 import type { Tone } from '../types';
@@ -34,6 +35,11 @@ export default function Home() {
             <Link to={s.hero_cta_link.startsWith('/') && !s.hero_cta_link.startsWith('//') ? s.hero_cta_link : '/shop'} className="btn">{s.hero_cta_label}</Link>
             <Link to="/collections" className="link">{tr('pHome.2', 'همه مجموعه‌ها')}</Link>
           </div>
+          <ul className="trust">
+            <li><IconTruck /><span>{s.free_shipping_threshold ? tr('pHome.20', 'ارسال رایگان بالای {0}', [price(s.free_shipping_threshold)]) : tr('pHome.21', 'ارسال به سراسر ایران')}</span></li>
+            <li><IconShield /><span>{tr('pHome.22', 'پرداخت امن')}</span></li>
+            <li><IconLeaf /><span>{tr('pHome.23', 'بسته‌بندی پایدار')}</span></li>
+          </ul>
         </div>
         <div className="hero__panels" aria-hidden="true">
           {tones.map((t, i) => (

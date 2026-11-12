@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import type { Product } from '../types';
 import { colorsOf, imageUrl, minPrice, totalStock } from '../lib/api';
 import { price } from '../lib/format';
-import { useWishlist } from '../context';
+import { useGate, useWishlist } from '../context';
 import { Placeholder } from './Placeholder';
-import { IconHeart } from './Icons';
+import { IconBag, IconHeart } from './Icons';
 
 export function ProductVisual({ p, view = 0, label }: { p: Product; view?: number; label?: boolean }) {
   const img = p.images?.[view] ?? p.images?.[0];
@@ -15,6 +15,7 @@ export function ProductVisual({ p, view = 0, label }: { p: Product; view?: numbe
 
 export function ProductCard({ p }: { p: Product }) {
   const { has, toggle } = useWishlist();
+  const gate = useGate();
   const liked = has(p.id);
   const colors = colorsOf(p);
   const sold = totalStock(p) === 0;
@@ -27,7 +28,7 @@ export function ProductCard({ p }: { p: Product }) {
         {p.is_new && !sold ? <span className="pcard__tag">{tr('cProductCard.1', 'جدید')}</span> : null}
         {sold ? <span className="pcard__tag pcard__tag--muted">{tr('cProductCard.2', 'ناموجود')}</span> : null}
       </Link>
-      <button className={`pcard__wish${liked ? ' is-on' : ''}`} onClick={() => void toggle(p.id)}
+      <button className={`pcard__wish${liked ? ' is-on' : ''}`} onClick={() => gate(() => void toggle(p.id))}
         aria-pressed={liked} aria-label={liked ? tr('cProductCard.3', 'حذف از علاقه‌مندی‌ها') : tr('cProductCard.4', 'افزودن به علاقه‌مندی‌ها')}>
         <IconHeart />
       </button>
@@ -37,6 +38,7 @@ export function ProductCard({ p }: { p: Product }) {
           {onSale ? <s>{price(p.compare_at_price as number)}</s> : null}
           <span>{price(from)}</span>
         </p>
+        <Link to={`/product/${p.slug}`} className="pcard__go" aria-label={tr('cProductCard.6', 'مشاهده و خرید')}><IconBag /></Link>
         {colors.length > 1 ? (
           <p className="dots" aria-label={tr('cProductCard.5', '{0} رنگ', [colors.length])}>
             {colors.map((c) => <i key={c.name} style={{ background: c.hex }} title={c.name} />)}
