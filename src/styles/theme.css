@@ -134,6 +134,11 @@ body { color: var(--deep); background:
 .gate { display: grid; place-items: center; min-height: 52vh; padding-block: 48px; }
 .gate__actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 8px; }
 
+/* sign-in method switch */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(38, 70, 83, .08); }
+.seg button { padding: 9px 12px; border-radius: 999px; font-weight: 500; color: var(--stone); transition: background .25s, color .25s, box-shadow .25s; }
+.seg button.is-on { background: #fff; color: var(--deep); box-shadow: 0 6px 14px -8px rgba(38, 70, 83, .7); }
+
 /* footer */
 .ftr { background: var(--glaze-deep); color: #cfe0e2; border-top: 0; position: relative; margin-top: 80px; border-radius: 36px 36px 0 0; }
 .ftr::before { content: ''; position: absolute; inset-inline: 12%; top: 0; height: 3px; border-radius: 3px; background: var(--coral); }

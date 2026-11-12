@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, isConfigured } from './lib/supabase';
 import { errorFa } from './lib/format';
-import { normalizePhone } from './lib/phone';
+import { latinDigits, normalizePhone } from './lib/phone';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LANG, tr } from './i18n';
 import type { CartLine, Profile } from './types';
@@ -34,8 +34,10 @@ interface AuthCtx {
   user: User | null; session: Session | null; profile: Profile | null; perms: string[]; ready: boolean; permsLoaded: boolean;
   isAdmin: boolean; can: (p: string) => boolean;
   /** identifier = phone number (or an email, for accounts created by email) */
-  signIn: (identifier: string, password: string) => Promise<string | null>;
+  signIn: (identifier: string, password: string, opts?: { remember?: boolean }) => Promise<string | null>;
   signUp: (phone: string, password: string, name: string) => Promise<string | null>;
+  sendOtp: (phone: string) => Promise<string | null>;
+  verifyOtp: (phone: string, code: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -81,12 +83,24 @@ function AuthProvider({ children }: { children: ReactNode }) {
     user: session?.user ?? null, session, profile, perms, ready, permsLoaded,
     isAdmin: perms.length > 0,
     can: (p) => perms.includes('*') || perms.includes(p),
-    signIn: async (identifier, password) => {
+    signIn: async (identifier, password, opts) => {
       const id = identifier.trim();
-      if (id.includes('@')) { const { error } = await supabase.auth.signInWithPassword({ email: id, password }); return error ? errorFa(error.message) : null; }
+      if (id.includes('@')) { const { error } = await supabase.auth.signInWithPassword({ email: id, password }, opts); return error ? errorFa(error.message) : null; }
       const phone = normalizePhone(id);
       if (!phone) return 'شماره موبایل معتبر نیست. نمونه: 09121234567';
       const { error } = await supabase.auth.signInWithPassword({ phone, password });
+      return error ? errorFa(error.message) : null;
+    },
+    sendOtp: async (phoneInput) => {
+      const phone = normalizePhone(phoneInput);
+      if (!phone) return 'شماره موبایل معتبر نیست. نمونه: 09121234567';
+      const { error } = await supabase.auth.signInWithOtp({ phone });
+      return error ? errorFa(error.message) : null;
+    },
+    verifyOtp: async (phoneInput, code) => {
+      const phone = normalizePhone(phoneInput);
+      if (!phone) return 'شماره موبایل معتبر نیست.';
+      const { error } = await supabase.auth.verifyOtp({ phone, token: latinDigits(code).replace(/\D/g, ''), type: 'sms' });
       return error ? errorFa(error.message) : null;
     },
     signUp: async (phoneInput, password, name) => {
@@ -185,11 +199,13 @@ export interface StoreSettings {
   store_name: string; tagline: string; announcement: string; shipping_fee: number; free_shipping_threshold: number;
   contact_email: string; contact_phone: string; instagram: string; bank_card_info: string;
   hero_title: string; hero_subtitle: string; hero_cta_label: string; hero_cta_link: string; statement: string;
+  /** true once an SMS gateway is connected and the Supabase "Send SMS" hook is on: the login page then offers one-time codes */
+  sms_otp_enabled: boolean;
 }
 const DEFAULTS: StoreSettings = {
   store_name: tr('context.1', 'آرام'), tagline: '', announcement: '', shipping_fee: 0, free_shipping_threshold: 0,
   contact_email: '', contact_phone: '', instagram: '', bank_card_info: '',
-  hero_title: tr('context.2', 'سکوت، زیباترین لباس است'), hero_subtitle: '', hero_cta_label: tr('context.3', 'مشاهده محصولات'), hero_cta_link: '/shop', statement: '',
+  hero_title: tr('context.2', 'سکوت، زیباترین لباس است'), hero_subtitle: '', hero_cta_label: tr('context.3', 'مشاهده محصولات'), hero_cta_link: '/shop', statement: '', sms_otp_enabled: false,
 };
 const SettingsC = createContext<{ s: StoreSettings; reload: () => void }>({ s: DEFAULTS, reload: () => {} });
 export const useSettings = () => useContext(SettingsC);

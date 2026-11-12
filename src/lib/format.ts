@@ -58,6 +58,8 @@ export function errorFa(message: string): string {
   if (hit) return ERROR_FA[hit];
   if (message.includes('duplicate key')) return tr('lformat.55', 'این مقدار قبلاً ثبت شده است.');
   if (message.includes('row-level security')) return tr('lformat.56', 'مجوز انجام این کار را ندارید.');
+  if (/token has expired|otp.*(expired|invalid)|invalid.*(otp|token)/i.test(message)) return 'کد اشتباه است یا منقضی شده. دوباره درخواست کد کنید.';
+  if (/rate limit|too many|seconds/i.test(message)) return 'درخواست‌ها زیاد است؛ کمی صبر کنید و دوباره تلاش کنید.';
   if (message.includes('Invalid login')) return tr('lformat.57', 'شماره یا رمز عبور درست نیست.');
   if (message.includes('already registered') || message.includes('already been registered')) return tr('lformat.58', 'با این شماره قبلاً ثبت‌نام شده است. وارد شوید.');
   if (/phone.*(disabled|not supported|provider)|unsupported phone|sms.*(provider|not)/i.test(message)) return 'ثبت‌نام با شماره در Supabase فعال نیست: Authentication ← Providers ← Phone را روشن کنید و Phone confirmations را خاموش بگذارید.';

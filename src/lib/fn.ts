@@ -20,5 +20,6 @@ export async function startPayment(orderId: string): Promise<void> {
 
 /** Best-effort: drain queued notification emails right after an order event. Failures are harmless (cron retries). */
 export function kickEmailQueue(): void {
-  void invokeFn('process-email-queue', {}).catch(() => { /* email not configured or disabled */ });
+  void invokeFn('process-sms-queue', {}).catch(() => { /* SMS not configured or disabled */ });
+  void invokeFn('process-email-queue', {}).catch(() => { /* admin email alerts not configured or disabled */ });
 }

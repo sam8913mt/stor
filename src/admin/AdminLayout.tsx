@@ -18,7 +18,8 @@ const NAV: { to: string; label: string; perm: string; end?: boolean }[] = [
   { to: '/admin/cms', label: tr('aAdminLayout.9', 'محتوا (CMS)'), perm: 'cms.manage' },
   { to: '/admin/settings', label: tr('aAdminLayout.10', 'تنظیمات فروشگاه'), perm: 'settings.manage' },
   { to: '/admin/payments', label: tr('aAdminLayout.11', 'روش‌های پرداخت'), perm: 'settings.manage' },
-  { to: '/admin/email', label: tr('aAdminLayout.12', 'اعلان‌های ایمیلی'), perm: 'settings.manage' },
+  { to: '/admin/sms', label: 'پیامک‌ها', perm: 'settings.manage' },
+  { to: '/admin/email', label: tr('aAdminLayout.12', 'ایمیل مدیران'), perm: 'settings.manage' },
   { to: '/admin/admins', label: tr('aAdminLayout.13', 'مدیران و نقش‌ها'), perm: 'admins.manage' },
   { to: '/admin/logs', label: tr('aAdminLayout.14', 'گزارش فعالیت‌ها'), perm: 'logs.view' },
 ];

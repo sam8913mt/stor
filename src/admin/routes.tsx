@@ -12,6 +12,7 @@ import Admins from './Admins';
 import Logs from './Logs';
 import AdminPayments from './Payments';
 import AdminEmail from './Email';
+import AdminSms from './Sms';
 import '../styles/admin.css';
 
 export default function AdminRoutes() {
@@ -31,6 +32,7 @@ export default function AdminRoutes() {
         <Route path="settings" element={<AdminSettings />} />
         <Route path="payments" element={<AdminPayments />} />
         <Route path="email" element={<AdminEmail />} />
+        <Route path="sms" element={<AdminSms />} />
         <Route path="admins" element={<Admins />} />
         <Route path="logs" element={<Logs />} />
       </Route>

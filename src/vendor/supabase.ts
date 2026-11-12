@@ -19,9 +19,18 @@ class Core {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private refreshing: Promise<void> | null = null;
   readonly storeKey: string;
+  /** false = keep the session only in this tab (sessionStorage): closing the tab signs the user out. */
+  remember = true;
   constructor(readonly url: string, readonly key: string, private persist: boolean, private autoRefresh: boolean) {
     this.storeKey = `sb-${new URL(url).hostname.split('.')[0]}-auth-token`;
-    if (persist) { try { const raw = localStorage.getItem(this.storeKey); if (raw) this.session = JSON.parse(raw) as Session; } catch { /* ignore */ } }
+    if (persist) {
+      try {
+        // a tab-only session (admin sign-in) wins over a remembered one
+        const raw = sessionStorage.getItem(this.storeKey) ?? localStorage.getItem(this.storeKey);
+        if (raw) this.session = JSON.parse(raw) as Session;
+        this.remember = sessionStorage.getItem(this.storeKey) === null;
+      } catch { /* ignore */ }
+    }
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (e) => {
         if (e.key !== this.storeKey) return;
@@ -35,7 +44,13 @@ class Core {
   private emit(event: string) { this.listeners.forEach((cb) => { try { cb(event, this.session); } catch { /* listener error */ } }); }
   setSession(s: Session | null, event: string) {
     this.session = s;
-    if (this.persist) { try { s ? localStorage.setItem(this.storeKey, JSON.stringify(s)) : localStorage.removeItem(this.storeKey); } catch { /* storage blocked */ } }
+    if (this.persist) {
+      try {
+        const keep = this.remember ? localStorage : sessionStorage, other = this.remember ? sessionStorage : localStorage;
+        if (s) { keep.setItem(this.storeKey, JSON.stringify(s)); other.removeItem(this.storeKey); }
+        else { localStorage.removeItem(this.storeKey); sessionStorage.removeItem(this.storeKey); }
+      } catch { /* storage blocked */ }
+    }
     this.schedule(); this.emit(event);
   }
   private schedule() {
@@ -164,9 +179,10 @@ export function createClient(url: string, key: string, opts?: { auth?: { persist
       const off = core.on(cb);
       return { data: { subscription: { unsubscribe: off } } };
     },
-    async signInWithPassword(c: { email?: string; phone?: string; password: string }) {
+    async signInWithPassword(c: { email?: string; phone?: string; password: string }, o?: { remember?: boolean }) {
+      core.remember = o?.remember !== false;
       try {
-        const r = await authCall('token?grant_type=password', c);
+        const r = await authCall('token?grant_type=password', { email: c.email, phone: c.phone, password: c.password });
         if (!r.ok || !r.json?.access_token) return { data: { user: null, session: null }, error: authErr(r.json, r.status) };
         const s = normalise(r.json); core.setSession(s, 'SIGNED_IN');
         return { data: { user: s.user, session: s }, error: null };
@@ -178,6 +194,22 @@ export function createClient(url: string, key: string, opts?: { auth?: { persist
         if (!r.ok) return { data: { user: null, session: null }, error: authErr(r.json, r.status) };
         if (r.json?.access_token) { const s = normalise(r.json); core.setSession(s, 'SIGNED_IN'); return { data: { user: s.user, session: s }, error: null }; }
         return { data: { user: r.json?.user ?? r.json, session: null }, error: null };
+      } catch (e) { return { data: { user: null, session: null }, error: netErr(e) }; }
+    },
+    /** Sends a one-time code by SMS (needs the Supabase "Send SMS" hook / provider). */
+    async signInWithOtp(c: { phone: string }) {
+      try {
+        const r = await authCall('otp', { phone: c.phone, create_user: true });
+        return r.ok ? { data: {}, error: null } : { data: {}, error: authErr(r.json, r.status) };
+      } catch (e) { return { data: {}, error: netErr(e) }; }
+    },
+    async verifyOtp(c: { phone: string; token: string; type?: string }) {
+      try {
+        core.remember = true;
+        const r = await authCall('verify', { type: c.type ?? 'sms', phone: c.phone, token: c.token });
+        if (!r.ok || !r.json?.access_token) return { data: { user: null, session: null }, error: authErr(r.json, r.status) };
+        const s = normalise(r.json); core.setSession(s, 'SIGNED_IN');
+        return { data: { user: s.user, session: s }, error: null };
       } catch (e) { return { data: { user: null, session: null }, error: netErr(e) }; }
     },
     async signOut() {
