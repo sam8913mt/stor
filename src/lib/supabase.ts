@@ -10,9 +10,14 @@ declare global {
 }
 
 const clean = (v: unknown) => (typeof v === 'string' ? v.trim().replace(/^["']+|["']+$/g, '').trim() : '');
-const cfg = (typeof window !== 'undefined' && window.ARAM_CONFIG) || {};
-const rawUrl = clean(cfg.SUPABASE_URL);
-const rawKey = clean(cfg.SUPABASE_ANON_KEY);
+export const CONFIG_STORE_KEY = 'aram.config';
+const fromFile = (typeof window !== 'undefined' && window.ARAM_CONFIG) || {};
+const fromStore = (() => { try { return JSON.parse(localStorage.getItem(CONFIG_STORE_KEY) ?? '{}') as { SUPABASE_URL?: string; SUPABASE_ANON_KEY?: string }; } catch { return {}; } })();
+const placeholder = (v: string) => !v || /YOUR-PROJECT-REF|YOUR-ANON/i.test(v);
+// config.js wins; if it still holds the placeholders, the values typed into the on-page setup form (saved in this browser) are used.
+const pick = (a: unknown, b: unknown) => (placeholder(clean(a)) ? clean(b) : clean(a));
+const rawUrl = pick(fromFile.SUPABASE_URL, fromStore.SUPABASE_URL);
+const rawKey = pick(fromFile.SUPABASE_ANON_KEY, fromStore.SUPABASE_ANON_KEY);
 
 function normaliseUrl(u: string): string | null {
   if (!u || /YOUR-PROJECT-REF/i.test(u)) return null;

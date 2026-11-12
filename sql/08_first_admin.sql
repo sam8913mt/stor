@@ -20,6 +20,9 @@ begin
   if lower(trim(v_email)) = 'change_me@example.com' or position('@' in v_email) = 0 then
     raise exception 'Edit v_email first: put the email of the account that already signed up.';
   end if;
+  if to_regprocedure('public.aram_require(text,text)') is null then
+    raise exception 'ARAM: the database is not installed yet. Run sql/00_INSTALL_ALL.sql FIRST (it includes the seed data), then run this file.';
+  end if;
   perform public.aram_require('0006', null);
 
   select id into v_user from public.profiles where lower(email) = lower(trim(v_email));

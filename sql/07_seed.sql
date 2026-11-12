@@ -1,6 +1,11 @@
 -- ARAM store · seed · starter data (roles, settings, categories, pages, sample catalogue).
 -- Run AFTER 0001–0006. Idempotent and non-destructive: only inserts missing rows; never overwrites values you edited.
 begin;
+do $$ begin
+  if to_regprocedure('public.aram_require(text,text)') is null then
+    raise exception 'ARAM: the database is not installed yet (the installer tables/functions do not exist). Run sql/00_INSTALL_ALL.sql FIRST, as ONE query, and wait for "Success". It already includes the seed data, so do not run 01-07 separately afterwards.';
+  end if;
+end $$;
 select public.aram_require('0006', null);
 
 insert into public.admin_roles (name, label_fa, permissions) values

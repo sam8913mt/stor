@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { isConfigured } from '../lib/supabase';
+import { CONFIG_STORE_KEY, isConfigured } from '../lib/supabase';
 import { LANG, LOC, setLang, tr } from '../i18n';
 import { useDialog } from '../hooks';
 
@@ -31,10 +31,22 @@ export function Empty({ title, text, to, cta, page }: { title: string; text?: st
 
 /** Shown when Supabase env vars are missing so the failure is explicit, not silent. */
 export function SetupNotice() {
+  const [url, setUrl] = useState('');
+  const [key, setKey] = useState('');
   if (isConfigured) return null;
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    try { localStorage.setItem(CONFIG_STORE_KEY, JSON.stringify({ SUPABASE_URL: url.trim(), SUPABASE_ANON_KEY: key.trim() })); } catch { /* storage blocked */ }
+    window.location.reload();
+  };
   return (
     <div className="setup" role="alert" dir="ltr">
-      Supabase is not configured. Open <code>config.js</code> next to <code>index.html</code> and set SUPABASE_URL (https://YOUR-REF.supabase.co) and SUPABASE_ANON_KEY (the anon public key). / سایت هنوز به Supabase وصل نشده است: فایل <code>config.js</code> کنار <code>index.html</code> را باز کنید و SUPABASE_URL و SUPABASE_ANON_KEY را وارد کنید.
+      <p><strong>Supabase is not connected / سایت هنوز به Supabase وصل نیست.</strong> Paste your <em>Project URL</em> and <em>anon public key</em> (Supabase → Project Settings → API), or put them in <code>config.js</code>.</p>
+      <form onSubmit={save} style={{ display: 'grid', gap: 8, maxWidth: 560, margin: '8px 0' }}>
+        <input className="input" required placeholder="https://xxxx.supabase.co" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="Supabase URL" />
+        <input className="input" required placeholder="anon public key (eyJ… / sb_publishable_…)" value={key} onChange={(e) => setKey(e.target.value)} aria-label="Supabase anon key" />
+        <button className="btn btn--sm">Save &amp; connect / ذخیره و اتصال</button>
+      </form>
     </div>
   );
 }

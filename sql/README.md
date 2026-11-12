@@ -1,3 +1,7 @@
+> The single file you need on a fresh project is `ARAM_ALL.sql` (same as 00_INSTALL_ALL.sql + optional first admin + verification table).
+
+> **Quick rule:** on a fresh Supabase project run ONLY `00_INSTALL_ALL.sql` (one query, wait for Success). It includes seed data. Files 01–07 are the same install split into steps — never run them after 00, and never run 07 alone.
+
 # SQL installation — `sql/`
 
 **Canonical install: ONE file, `00_INSTALL_ALL.sql`.** It installs the entire Aram Store database on a **fresh** Supabase project (tables, keys, indexes, constraints, functions, triggers, RLS + policies, storage bucket, roles/permissions, inventory/order/cancellation/coupon logic, payments, email outbox, addresses, search/pagination, bilingual fields, settings, activity log, hardening, non-destructive seed data). It runs as a single transaction: if anything fails, nothing is installed. It contains no passwords, API keys or secrets.
