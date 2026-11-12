@@ -6,6 +6,10 @@
 1. `config.js` را باز کنید و `SUPABASE_URL` و `SUPABASE_ANON_KEY` را بنویسید (Supabase → Project Settings → API).
 2. روی `index.html` راست‌کلیک ← **Open with Live Server**. (دابل‌کلیک هم کار می‌کند.)
 
+## آدرس بدون `#` (GitHub Pages)
+با هر push روی `main` ورک‌فلو `.github/workflows/deploy.yml` سایت را با آدرس‌های تمیز (`/shop`، `/admin`) منتشر می‌کند: `404.html` درخواست‌ها را به `index.html` برمی‌گرداند و `CLEAN_URLS` را خودکار روشن می‌کند. در Settings → Pages منبع را روی **GitHub Actions** بگذارید.
+روی کامپیوتر خودتان (Live Server) `CLEAN_URLS` در `config.js` خاموش است و آدرس‌ها `index.html#/shop` می‌مانند چون Live Server مسیرهای ناشناخته را به `index.html` نمی‌رساند. اگر Edge Functionهای پرداخت دارید و سایت را با `#` اجرا می‌کنید، سکرت `ROUTER_MODE=hash` را در Supabase بگذارید.
+
 ## دیتابیس
 `sql/00_INSTALL_ALL.sql` را در Supabase → SQL Editor اجرا کنید؛ بعد `SUPABASE_SETUP.md` و `ADMIN_SETUP.md`.
 

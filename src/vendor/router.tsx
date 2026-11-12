@@ -3,11 +3,39 @@
  * Supports: nested + layout + index routes, `:params`, trailing `*` splat, descendant <Routes>, Link/NavLink/Navigate,
  * useLocation / useNavigate / useParams / useSearchParams.
  */
-import { Children, createContext, isValidElement, useContext, useEffect, useMemo, useSyncExternalStore, type AnchorHTMLAttributes, type ReactElement, type ReactNode } from 'react';
+import { Children, createContext, isValidElement, useContext, useEffect, useMemo, useSyncExternalStore, type AnchorHTMLAttributes, type MouseEvent, type ReactElement, type ReactNode } from 'react';
 
-/* ───────── location (the part after “#”) ───────── */
-const readHash = () => window.location.hash.slice(1) || '/';
-const subscribe = (cb: () => void) => { window.addEventListener('hashchange', cb); return () => window.removeEventListener('hashchange', cb); };
+/* ───────── location ─────────
+ * Two modes (config.js → CLEAN_URLS):
+ *   false (default, also file://)  → https://site/#/shop         (works with any static server / double-click)
+ *   true                            → https://site/shop           (History API; the host must serve index.html for unknown paths:
+ *                                                                  GitHub Pages does this through 404.html, see 404.html)
+ */
+const CLEAN = typeof window !== 'undefined' && window.location.protocol !== 'file:' && (window as unknown as { ARAM_CONFIG?: { CLEAN_URLS?: boolean } }).ARAM_CONFIG?.CLEAN_URLS === true;
+/** Folder the site is served from (e.g. "/my-repo"), derived from where assets/app.js was loaded. "" when served from the domain root. */
+const BASE = (() => {
+  if (!CLEAN) return '';
+  try {
+    const src = (document.currentScript as HTMLScriptElement | null)?.src;
+    if (src) return new URL('..', src).pathname.replace(/\/+$/, '');
+  } catch { /* fall through */ }
+  return '';
+})();
+const NAV_EVENT = 'aram:navigate';
+
+if (CLEAN) {
+  try {   // old hash links (#/shop) and the GitHub-Pages 404 fallback (?/shop) become clean URLs
+    const l = window.location;
+    if (l.hash.startsWith('#/')) window.history.replaceState(null, '', BASE + l.hash.slice(1));
+  } catch { /* ignore */ }
+}
+
+const readLoc = () => (CLEAN ? (window.location.pathname.slice(BASE.length) || '/') + window.location.search : window.location.hash.slice(1) || '/');
+const subscribe = (cb: () => void) => {
+  const evs = CLEAN ? ['popstate', NAV_EVENT] : ['hashchange'];
+  evs.forEach((e) => window.addEventListener(e, cb));
+  return () => evs.forEach((e) => window.removeEventListener(e, cb));
+};
 
 export interface Location { pathname: string; search: string }
 function parseLocation(raw: string): Location {
@@ -22,17 +50,22 @@ export interface NavigateOptions { replace?: boolean }
 function go(to: string | number, opts?: NavigateOptions) {
   if (typeof to === 'number') { window.history.go(to); return; }
   const target = to.startsWith('/') ? to : '/' + to;
-  if (opts?.replace) window.location.replace(`${window.location.pathname}${window.location.search}#${target}`);
+  if (CLEAN) {
+    if (opts?.replace) window.history.replaceState(null, '', BASE + target); else window.history.pushState(null, '', BASE + target);
+    window.dispatchEvent(new Event(NAV_EVENT));
+  } else if (opts?.replace) window.location.replace(`${window.location.pathname}${window.location.search}#${target}`);
   else window.location.hash = target;
 }
+const hrefFor = (to: string) => { const t = to.startsWith('/') ? to : '/' + to; return CLEAN ? BASE + t : '#' + t; };
 
 export function HashRouter({ children }: { children?: ReactNode }) {
-  useSyncExternalStore(subscribe, readHash);
+  useSyncExternalStore(subscribe, readLoc);
   return <>{children}</>;
 }
+export const BrowserRouter = HashRouter;
 
 export function useLocation(): Location {
-  const raw = useSyncExternalStore(subscribe, readHash);
+  const raw = useSyncExternalStore(subscribe, readLoc);
   return useMemo(() => parseLocation(raw), [raw]);
 }
 export function useNavigate() { return go; }
@@ -128,14 +161,25 @@ export function useParams<T extends Record<string, string | undefined> = Record<
 
 /* ───────── links ───────── */
 type LinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & { to: string };
-export function Link({ to, children, ...rest }: LinkProps) {
-  return <a href={`#${to.startsWith('/') ? to : '/' + to}`} {...rest}>{children}</a>;
+export function Link({ to, children, onClick, target, ...rest }: LinkProps) {
+  const click = (e: MouseEvent<HTMLAnchorElement>) => {
+    onClick?.(e);
+    if (!CLEAN || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (target && target !== '_self')) return;
+    e.preventDefault();
+    go(to);
+  };
+  return <a href={hrefFor(to)} target={target} onClick={click} {...rest}>{children}</a>;
 }
 
 export function NavLink({ to, end, className, children, ...rest }: LinkProps & { end?: boolean }) {
-  const { pathname } = useLocation();
-  const target = parseLocation(to).pathname;
-  const active = end || target === '/' ? pathname === target : pathname === target || pathname.startsWith(target + '/');
+  const { pathname, search } = useLocation();
+  const t = parseLocation(to);
+  const want = new URLSearchParams(t.search);
+  const cur = new URLSearchParams(search);
+  const pathOk = end || t.pathname === '/' ? pathname === t.pathname : pathname === t.pathname || pathname.startsWith(t.pathname + '/');
+  // a link with a query (/shop?cat=coats) is active only when that query matches; a bare /shop link only when no category/"new" filter is set
+  const queryOk = [...want.keys()].length ? [...want].every(([k, v]) => cur.get(k) === v) : t.pathname !== '/shop' || (!cur.has('cat') && !cur.has('new'));
+  const active = pathOk && queryOk;
   const cls = [typeof className === 'string' ? className : '', active ? 'active' : ''].filter(Boolean).join(' ') || undefined;
   return <Link to={to} className={cls} aria-current={active ? 'page' : undefined} {...rest}>{children}</Link>;
 }

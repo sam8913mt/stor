@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <title>ARAM</title>
+    <script>
+      // GitHub Pages has no server-side routing: unknown paths (e.g. /repo/shop) land here and are sent to index.html,
+      // which restores the clean URL. KEEP = number of leading path segments that belong to the hosting folder
+      // (1 for https://user.github.io/REPO/, 0 for https://user.github.io/ or a custom domain). The deploy workflow sets it.
+      var KEEP = '__KEEP__';
+      var l = window.location;
+      var keep = /^\d+$/.test(KEEP) ? Number(KEEP) : (/\.github\.io$/.test(l.hostname) ? 1 : 0);
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, 1 + keep).join('/') + '/?/' +
+        l.pathname.slice(1).split('/').slice(keep).join('/').replace(/&/g, '~and~') +
+        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') + l.hash
+      );
+    </script>
+  </head>
+  <body></body>
+</html>

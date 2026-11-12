@@ -18,6 +18,12 @@ export function Layout() {
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState(false);
   const [term, setTerm] = useState('');
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 24);
+    on(); window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, []);
   const cat = useAsync(() => loadMeta(), []);
   const pages = useAsync(() => q<{ slug: string; title_fa: string; title_en: string | null }[]>(supabase.from('cms_pages').select('slug,title_fa,title_en').eq('is_published', true).order('title_fa')), []);
 
@@ -39,19 +45,21 @@ export function Layout() {
       <a className="skip" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }}>{tr('cLayout.3', 'رفتن به محتوا')}</a>
       <SetupNotice />
       {s.announcement ? <div className="announce">{s.announcement}</div> : null}
-      <header className="hdr">
+      <header className={`hdr${scrolled ? ' is-scrolled' : ''}`}>
         <div className="hdr__in wrap">
-          <button className="icon hdr__burger" aria-label={tr('cLayout.4', 'منو')} onClick={() => setMenu(true)}><IconMenu /></button>
-          <nav className="hdr__nav" aria-label={tr('cLayout.5', 'اصلی')}>{links}</nav>
-          <Link to="/" className="logo" aria-label={s.store_name}>ARAM</Link>
-          <div className="hdr__tools">
+          <div className="hdr__start">
+            <button className="icon hdr__burger" aria-label={tr('cLayout.4', 'منو')} onClick={() => setMenu(true)}><IconMenu /></button>
             <LangSwitch />
             <button className="icon" aria-label={tr('cLayout.6', 'جستجو')} aria-expanded={search} onClick={() => setSearch((v) => !v)}><IconSearch /></button>
+          </div>
+          <Link to="/" className="logo" aria-label={s.store_name}>ARAM</Link>
+          <div className="hdr__tools">
             <Link className="icon hide-sm" to={user ? '/account' : '/login'} aria-label={tr('cLayout.7', 'حساب کاربری')}><IconUser /></Link>
             <Link className="icon badge-wrap" to="/wishlist" aria-label={tr('cLayout.8', 'علاقه‌مندی‌ها')}><IconHeart />{wish.ids.length ? <b className="badge">{wish.ids.length.toLocaleString(LOC)}</b> : null}</Link>
             <Link className="icon badge-wrap" to="/cart" aria-label={tr('cLayout.9', 'سبد خرید')}><IconBag />{count ? <b className="badge">{count.toLocaleString(LOC)}</b> : null}</Link>
           </div>
         </div>
+        <div className="hdr__bar"><nav className="hdr__nav" aria-label={tr('cLayout.5', 'اصلی')}>{links}</nav></div>
         {search ? (
           <form className="searchbar wrap" onSubmit={submit} role="search">
             <input autoFocus className="input" value={term} onChange={(e) => setTerm(e.target.value)} placeholder={tr('cLayout.10', 'جستجوی محصول، رنگ یا دسته…')} aria-label={tr('cLayout.11', 'جستجو')} />

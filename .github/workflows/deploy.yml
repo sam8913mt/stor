@@ -22,28 +22,29 @@ jobs:
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v4
-      - name: Require and sanity-check Supabase repository secrets
-        run: |
-          test -n "$VITE_SUPABASE_URL" || { echo "::error::Secret VITE_SUPABASE_URL is not set (Settings → Secrets and variables → Actions)"; exit 1; }
-          test -n "$VITE_SUPABASE_ANON_KEY" || { echo "::error::Secret VITE_SUPABASE_ANON_KEY is not set (Settings → Secrets and variables → Actions)"; exit 1; }
-          url="$(printf '%s' "$VITE_SUPABASE_URL" | tr -d '[:space:]"'"'"'')"
-          key="$(printf '%s' "$VITE_SUPABASE_ANON_KEY" | tr -d '[:space:]"'"'"'')"
-          case "$url" in
-            https://*.*) ;;
-            *) echo "::warning::VITE_SUPABASE_URL should look like https://YOUR-REF.supabase.co (the app tolerates a missing https:// but check the value)." ;;
-          esac
-          if [ "${#key}" -lt 20 ]; then echo "::error::VITE_SUPABASE_ANON_KEY is too short to be an anon public key."; exit 1; fi
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install --no-audit --no-fund
       - run: npm run build
-      - name: Assemble site (index.html + config.js from secrets + assets)
+      - name: Assemble site (clean URLs, SPA fallback, config)
         run: |
           mkdir dist
-          cp -r index.html favicon.svg assets dist/
-          printf 'window.ARAM_CONFIG = { SUPABASE_URL: %s, SUPABASE_ANON_KEY: %s };
+          cp -r index.html 404.html favicon.svg assets admin dist/
+          # Supabase values: repository secrets if set, otherwise the committed config.js
+          if [ -n "$VITE_SUPABASE_URL" ] && [ -n "$VITE_SUPABASE_ANON_KEY" ]; then
+            printf 'window.ARAM_CONFIG = { SUPABASE_URL: %s, SUPABASE_ANON_KEY: %s };
 ' "$(jq -Rn --arg v "$VITE_SUPABASE_URL" '$v')" "$(jq -Rn --arg v "$VITE_SUPABASE_ANON_KEY" '$v')" > dist/config.js
+          else
+            cp config.js dist/config.js
+          fi
+          echo 'window.ARAM_CONFIG.CLEAN_URLS = true;' >> dist/config.js
+          # number of path segments that belong to the hosting folder: 0 for user sites (OWNER.github.io) and custom domains, else 1
+          REPO="${GITHUB_REPOSITORY#*/}"; OWNER="${GITHUB_REPOSITORY%/*}"
+          if [ -f CNAME ] || [ "${REPO,,}" = "${OWNER,,}.github.io" ]; then KEEP=0; else KEEP=1; fi
+          [ -f CNAME ] && cp CNAME dist/CNAME || true
+          sed -i "s/__KEEP__/$KEEP/" dist/404.html
+          touch dist/.nojekyll
           test -f dist/assets/app.js
       - uses: actions/upload-pages-artifact@v3
         with:

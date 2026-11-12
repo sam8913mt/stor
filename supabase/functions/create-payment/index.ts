@@ -1,6 +1,6 @@
 // POST { order_id } (signed-in customer) → { url } to redirect the browser to the provider's hosted payment page.
 // Amount always comes from the database order, never from the client.
-import { admin, cors, getUser, json, SITE_URL, SUPABASE_URL } from '../_shared/lib.ts';
+import { admin, cors, getUser, json, pageUrl, SITE_URL, SUPABASE_URL } from '../_shared/lib.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors(req) });
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       const minor = Math.round((Number(order.total) / rate) * 100);
       const form = new URLSearchParams({
         mode: 'payment', client_reference_id: order.id, 'metadata[payment_id]': pay.id,
-        success_url: `${SITE_URL}#/order-success/${order.order_number}?paid=pending`, cancel_url: `${SITE_URL}#/account/orders?payment=cancelled`,
+        success_url: pageUrl(`/order-success/${order.order_number}?paid=pending`), cancel_url: pageUrl('/account/orders?payment=cancelled'),
         'line_items[0][quantity]': '1', 'line_items[0][price_data][currency]': currency,
         'line_items[0][price_data][unit_amount]': String(minor), 'line_items[0][price_data][product_data][name]': `Order ${order.order_number}`,
       });

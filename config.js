@@ -2,5 +2,7 @@
 // NEVER put a secret / service_role key, database password or any payment/email key here.
 window.ARAM_CONFIG = {
   SUPABASE_URL: "https://sukjohohaiphrfribghs.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_vlXHXN3zxemgsTOrHpPwNg_ipM1U8bC"
+  SUPABASE_ANON_KEY: "sb_publishable_vlXHXN3zxemgsTOrHpPwNg_ipM1U8bC",
+  // false = addresses like /index.html#/shop (works everywhere, incl. Live Server). true = clean addresses like /shop (GitHub Pages deploy sets this).
+  CLEAN_URLS: false
 };

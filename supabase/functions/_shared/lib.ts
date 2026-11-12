@@ -38,7 +38,9 @@ export async function getUser(req: Request) {
   return error ? null : data.user;
 }
 
-export const redirect = (path: string) => new Response(null, { status: 302, headers: { Location: `${SITE_URL}#${path}` } });
+/** Clean addresses (https://site/shop) by default; set the secret ROUTER_MODE=hash only if the site runs with CLEAN_URLS=false. */
+export const pageUrl = (path: string) => (Deno.env.get('ROUTER_MODE') === 'hash' ? `${SITE_URL}#${path}` : `${SITE_URL}${path.replace(/^\//, '')}`);
+export const redirect = (path: string) => new Response(null, { status: 302, headers: { Location: pageUrl(path) } });
 export const timingSafeEqual = (a: string, b: string) => {
   if (a.length !== b.length) return false;
   let r = 0;
