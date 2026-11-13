@@ -4,10 +4,11 @@ import { useAuth, useSettings } from '../context';
 import { useTitle } from '../hooks';
 import { tr } from '../i18n';
 import { IconLock, IconPhone, IconUser } from '../components/Icons';
+import Signup from './Signup';
 
 export default function Auth() {
   useTitle(tr('pAuth.1', 'ورود'));
-  const { user, permsLoaded, isAdmin, signIn, signUp, sendOtp, verifyOtp } = useAuth();
+  const { user, permsLoaded, isAdmin, signIn, sendOtp, verifyOtp } = useAuth();
   const { s } = useSettings();
   const [sp] = useSearchParams();
   const next = sp.get('next');
@@ -17,7 +18,6 @@ export default function Auth() {
   const [mode, setMode] = useState<'in' | 'up'>(!adminMode && sp.get('mode') === 'up' ? 'up' : 'in');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   // customers can sign in with a password or (once an SMS gateway is connected) a one-time code sent by SMS
@@ -44,11 +44,13 @@ export default function Auth() {
     if (adminMode && !phone.includes('@')) { setErr(tr('pAuth.15', 'ورود مدیران با ایمیل (جیمیل) انجام می‌شود.')); return; }
     if (!adminMode && phone.includes('@')) { setErr(tr('pAuth.16', 'ورود مشتریان با شماره موبایل است. ایمیل مخصوص مدیران است.')); return; }
     setBusy(true);
-    const res = mode === 'in' ? await signIn(phone, password, { remember: !adminMode }) : await signUp(phone, password, name);
+    const res = await signIn(phone, password, { remember: !adminMode });
     setBusy(false);
     if (res === 'CONFIRM_PHONE') setErr(tr('pAuth.2', 'حساب ساخته شد، ولی «Confirm phone» در Supabase روشن است و پیامک لازم می‌شود. آن را خاموش کنید (Authentication ← Providers ← Phone).'));
-    else if (res) setErr(res);
+    else if (res) setErr(adminMode ? res.replace('شماره', 'ایمیل') : res);
   };
+
+  if (mode === 'up' && !adminMode) return <Signup onLogin={() => { setMode('in'); setErr(''); }} />;
 
   return (
     <div className="wrap authbox">
@@ -57,7 +59,6 @@ export default function Auth() {
         <h1 className="h1">{adminMode ? tr('pAuth.17', 'ورود مدیران') : mode === 'in' ? tr('pAuth.3', 'ورود') : tr('pAuth.4', 'ساخت حساب')}</h1>
         <p className="muted">{adminMode ? tr('pAuth.18', 'با ایمیل و رمز عبور مدیر وارد شوید.') : mode === 'in' ? tr('pAuth.13', 'با شماره موبایل و رمز عبور وارد شوید.') : tr('pAuth.14', 'فقط شماره موبایل و یک رمز عبور لازم است.')}</p>
         <form className="form" onSubmit={submit}>
-          {mode === 'up' ? <label>{tr('pAuth.5', 'نام و نام خانوادگی')}<input className="input" required value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" /></label> : null}
           {!adminMode && mode === 'in' && s.sms_otp_enabled ? (
             <div className="seg" role="tablist" aria-label={tr('pAuth.21', 'روش ورود')}>
               <button type="button" role="tab" aria-selected={method === 'password'} className={method === 'password' ? 'is-on' : ''} onClick={() => { setMethod('password'); setErr(''); }}>{tr('pAuth.22', 'رمز عبور')}</button>

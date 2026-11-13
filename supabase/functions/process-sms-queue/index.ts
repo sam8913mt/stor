@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     if (!ok) return json(req, { error: 'FORBIDDEN' }, 403);
     const message = String(body.message ?? '').trim();
     if (message.length < 5 || message.length > 500) return json(req, { error: 'BAD_MESSAGE' }, 400);
-    const { data: people } = await db.from('profiles').select('phone').neq('phone', '').limit(5000);
+    const { data: people } = await db.from('profiles').select('phone').neq('phone', '').eq('marketing_sms_optin', true).limit(5000);
     const seen = new Set<string>(); const rows: Record<string, unknown>[] = [];
     for (const p of people ?? []) {
       const { data: n } = await db.rpc('norm_phone', { p: p.phone });

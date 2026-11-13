@@ -6,12 +6,21 @@ import { LOC, tr } from '../i18n';
 import { dateFa, price } from '../lib/format';
 import { ErrorBox, Loading, Pager } from '../components/ui';
 import { Can, PageHead } from './ui';
+import { useToast } from '../context';
+import { errorFa } from '../lib/format';
 import { showPhone } from '../lib/phone';
 import type { Profile } from '../types';
 
 const PER = 25;
 
 export default function Customers() {
+  const toast = useToast();
+  const setPassword = async (id: string, name: string) => {
+    const pw = window.prompt(`رمز جدید برای ${name || 'این مشتری'} (حداقل ۸ نویسه). آن را به مشتری اعلام کنید و از او بخواهید در حساب کاربری تغییرش دهد.`);
+    if (!pw) return;
+    try { await q(supabase.rpc('admin_set_customer_password', { p_user: id, p_password: pw })); toast.push('رمز جدید ثبت شد.'); }
+    catch (e) { toast.push(errorFa((e as Error).message), 'err'); }
+  };
   const [termIn, setTermIn] = useState('');
   const term = useDebounced(termIn);
   const [page, setPage] = useState(1);
@@ -32,10 +41,10 @@ export default function Customers() {
       {loading && !data ? <Loading /> : error ? <ErrorBox error={error} retry={reload} /> : (
         <>
           <div className="tablewrap"><table className="table">
-            <thead><tr><th>{tr('aCustomers.4', 'نام')}</th><th>{tr('aCustomers.6', 'شماره موبایل')}</th><th>{tr('aCustomers.5', 'ایمیل')}</th><th>{tr('aCustomers.7', 'عضویت')}</th><th>{tr('aCustomers.8', 'سفارش‌ها')}</th><th>{tr('aCustomers.9', 'مجموع خرید')}</th></tr></thead>
+            <thead><tr><th>{tr('aCustomers.4', 'نام')}</th><th>{tr('aCustomers.6', 'شماره موبایل')}</th><th>{tr('aCustomers.5', 'ایمیل')}</th><th>{tr('aCustomers.7', 'عضویت')}</th><th>پیامک تبلیغاتی</th><th>{tr('aCustomers.8', 'سفارش‌ها')}</th><th>{tr('aCustomers.9', 'مجموع خرید')}</th><th>رمز</th></tr></thead>
             <tbody>
-              {data?.rows.map((p) => <tr key={p.id}><td>{p.full_name || '—'}</td><td dir="ltr">{showPhone(p.phone) || '—'}</td><td dir="ltr">{p.email || '—'}</td><td>{dateFa(p.created_at)}</td><td>{p.n.toLocaleString(LOC)}</td><td>{price(p.sum)}</td></tr>)}
-              {!data?.rows.length ? <tr><td colSpan={6} className="muted">{tr('aCustomers.10', 'مشتری‌ای پیدا نشد.')}</td></tr> : null}
+              {data?.rows.map((p) => <tr key={p.id}><td>{p.full_name || '—'}</td><td dir="ltr">{showPhone(p.phone) || '—'}</td><td dir="ltr">{p.email || '—'}</td><td>{dateFa(p.created_at)}</td><td>{p.marketing_sms_optin ? 'موافق' : '—'}</td><td>{p.n.toLocaleString(LOC)}</td><td>{price(p.sum)}</td><td><button className="link" onClick={() => void setPassword(p.id, p.full_name ?? '')}>رمز جدید</button></td></tr>)}
+              {!data?.rows.length ? <tr><td colSpan={8} className="muted">{tr('aCustomers.10', 'مشتری‌ای پیدا نشد.')}</td></tr> : null}
             </tbody>
           </table></div>
           <Pager page={page} total={data?.total ?? 0} size={PER} onPage={setPage} />

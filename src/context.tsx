@@ -35,7 +35,8 @@ interface AuthCtx {
   isAdmin: boolean; can: (p: string) => boolean;
   /** identifier = phone number (or an email, for accounts created by email) */
   signIn: (identifier: string, password: string, opts?: { remember?: boolean }) => Promise<string | null>;
-  signUp: (phone: string, password: string, name: string) => Promise<string | null>;
+  signUp: (phone: string, password: string, data: SignupData, address?: SignupAddress | null) => Promise<string | null>;
+  changePassword: (password: string) => Promise<string | null>;
   sendOtp: (phone: string) => Promise<string | null>;
   verifyOtp: (phone: string, code: string) => Promise<string | null>;
   signOut: () => Promise<void>;
@@ -103,12 +104,20 @@ function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.verifyOtp({ phone, token: latinDigits(code).replace(/\D/g, ''), type: 'sms' });
       return error ? errorFa(error.message) : null;
     },
-    signUp: async (phoneInput, password, name) => {
+    signUp: async (phoneInput, password, d, addr) => {
       const phone = normalizePhone(phoneInput);
       if (!phone) return 'شماره موبایل معتبر نیست. نمونه: 09121234567';
-      const { data, error } = await supabase.auth.signUp({ phone, password, options: { data: { full_name: name } } });
+      const { data, error } = await supabase.auth.signUp({ phone, password, options: { data: { ...d, full_name: `${d.first_name} ${d.last_name}`.trim() } } });
       if (error) return errorFa(error.message);
-      return data.session ? null : 'CONFIRM_PHONE';
+      if (!data.session) return 'CONFIRM_PHONE';
+      if (addr) {   // first delivery address, saved as default (best effort: the account exists either way)
+        await supabase.from('addresses').insert({ user_id: data.session.user.id, label: 'خانه', full_name: `${d.first_name} ${d.last_name}`.trim(), phone: phone.replace(/^\+98/, '0'), province: addr.province, city: addr.city, address: addr.address, postal_code: addr.postal_code || null, is_default: true });
+      }
+      return null;
+    },
+    changePassword: async (password) => {
+      const { error } = await supabase.auth.updateUser({ password });
+      return error ? errorFa(error.message) : null;
     },
     signOut: async () => { await supabase.auth.signOut(); },
     refreshProfile: async () => { if (uid) await load(uid); },
@@ -193,6 +202,9 @@ function WishlistProvider({ children }: { children: ReactNode }) {
   const value = useMemo<WishCtx>(() => ({ ids, has: (id) => ids.includes(id), toggle }), [ids, toggle]);
   return <WishC.Provider value={value}>{children}</WishC.Provider>;
 }
+
+export interface SignupData { first_name: string; last_name: string; national_id?: string; birth_date?: string; gender?: string; marketing_sms_optin: boolean; accepted_terms: boolean }
+export interface SignupAddress { province: string; city: string; address: string; postal_code?: string }
 
 /* ───────────── Public settings ───────────── */
 export interface StoreSettings {

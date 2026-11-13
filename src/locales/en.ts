@@ -720,4 +720,5 @@ export const EN: Record<string, string> = {
   "pAuth.24": "Code sent to your mobile",
   "pAuth.25": "Verify and sign in",
   "pAuth.26": "Send code",
+  "cGate.7": "Sign in to see your account",
 };

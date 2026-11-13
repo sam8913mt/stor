@@ -1,4 +1,6 @@
 import { showPhone } from '../lib/phone';
+import { PROVINCES } from '../lib/iran';
+import { digitsOnly, isValidNationalId } from '../lib/validate';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, Route, Routes, useSearchParams } from 'react-router-dom';
 import { q } from '../lib/api';
@@ -12,27 +14,65 @@ import { Empty, ErrorBox, Loading } from '../components/ui';
 import type { Address, Order } from '../types';
 
 function ProfileForm() {
-  const { profile, user, refreshProfile } = useAuth();
+  const { profile, user, refreshProfile, changePassword } = useAuth();
   const toast = useToast();
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  useEffect(() => { setName(profile?.full_name ?? ''); setPhone(profile?.phone ?? ''); }, [profile]);
+  const [f, setF] = useState({ first_name: '', last_name: '', national_id: '', birth_date: '', gender: '', marketing: false });
+  const [pw, setPw] = useState({ a: '', b: '' });
+  useEffect(() => {
+    setF({ first_name: profile?.first_name ?? '', last_name: profile?.last_name ?? '', national_id: profile?.national_id ?? '', birth_date: profile?.birth_date ?? '', gender: profile?.gender ?? '', marketing: !!profile?.marketing_sms_optin });
+  }, [profile]);
+  const set = (k: 'first_name' | 'last_name' | 'national_id' | 'birth_date' | 'gender') => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
   const save = async (e: FormEvent) => {
     e.preventDefault();
-    try { await q(supabase.from('profiles').update({ full_name: name.trim(), phone: phone.trim() }).eq('id', user!.id)); await refreshProfile(); toast.push(tr('pAccount.1', 'ذخیره شد.')); }
-    catch (err) { toast.push(errorFa((err as Error).message), 'err'); }
+    if (f.national_id && !isValidNationalId(f.national_id)) { toast.push(tr('pAccount.50', 'کد ملی معتبر نیست.'), 'err'); return; }
+    try {
+      await q(supabase.from('profiles').update({
+        first_name: f.first_name.trim() || null, last_name: f.last_name.trim() || null, full_name: `${f.first_name} ${f.last_name}`.trim() || null,
+        national_id: f.national_id ? digitsOnly(f.national_id) : null, birth_date: f.birth_date || null, gender: f.gender || null, marketing_sms_optin: f.marketing,
+      }).eq('id', user!.id));
+      await refreshProfile(); toast.push(tr('pAccount.1', 'ذخیره شد.'));
+    } catch (err) { toast.push(errorFa((err as Error).message), 'err'); }
+  };
+  const savePw = async (e: FormEvent) => {
+    e.preventDefault();
+    if (pw.a.length < 8) { toast.push(tr('pSignup.22', 'رمز عبور باید حداقل ۸ نویسه باشد.'), 'err'); return; }
+    if (pw.a !== pw.b) { toast.push(tr('pSignup.23', 'رمز عبور و تکرار آن یکسان نیستند.'), 'err'); return; }
+    const res = await changePassword(pw.a);
+    if (res) toast.push(res, 'err'); else { toast.push(tr('pAccount.51', 'رمز عبور تغییر کرد.')); setPw({ a: '', b: '' }); }
   };
   return (
-    <form className="form form--narrow" onSubmit={save}>
-      <label>{user?.email ? tr('pAccount.2', 'ایمیل') : tr('pAccount.19', 'شماره ورود')}<input className="input" dir="ltr" value={user?.email || showPhone(profile?.phone) || ''} disabled /></label>
-      <label>{tr('pAccount.3', 'نام و نام خانوادگی')}<input className="input" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} /></label>
-      <label>{tr('pAccount.4', 'تلفن همراه')}<input className="input" dir="ltr" maxLength={30} value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
-      <button className="btn btn--sm">{tr('pAccount.5', 'ذخیره تغییرات')}</button>
-    </form>
+    <div className="account__forms">
+      <form className="form form--narrow" onSubmit={save}>
+        <label>{user?.email ? tr('pAccount.2', 'ایمیل') : tr('pAccount.52', 'شماره موبایل (شناسه ورود)')}<input className="input" dir="ltr" value={user?.email || showPhone(profile?.phone) || ''} disabled /></label>
+        <div className="form__row">
+          <label>{tr('pSignup.4', 'نام')}<input className="input" maxLength={60} value={f.first_name} onChange={set('first_name')} /></label>
+          <label>{tr('pSignup.5', 'نام خانوادگی')}<input className="input" maxLength={60} value={f.last_name} onChange={set('last_name')} /></label>
+        </div>
+        <div className="form__row">
+          <label>{tr('pSignup.10', 'کد ملی')}<input className="input" dir="ltr" inputMode="numeric" maxLength={10} value={f.national_id} onChange={set('national_id')} /></label>
+          <label>{tr('pSignup.11', 'تاریخ تولد')}<input className="input" type="date" dir="ltr" value={f.birth_date} onChange={set('birth_date')} /></label>
+        </div>
+        <label>{tr('pSignup.12', 'جنسیت')}
+          <select className="select" value={f.gender} onChange={set('gender')}>
+            <option value="">{tr('pSignup.13', 'ترجیح می‌دهم نگویم')}</option><option value="female">{tr('pSignup.14', 'زن')}</option><option value="male">{tr('pSignup.15', 'مرد')}</option><option value="other">{tr('pSignup.16', 'سایر')}</option>
+          </select>
+        </label>
+        <label className="chk"><input type="checkbox" checked={f.marketing} onChange={(e) => setF({ ...f, marketing: e.target.checked })} /> <span>{tr('pSignup.35', 'می‌خواهم از تخفیف‌ها و محصولات جدید با پیامک باخبر شوم.')}</span></label>
+        <button className="btn btn--sm">{tr('pAccount.5', 'ذخیره تغییرات')}</button>
+      </form>
+      <form className="form form--narrow" onSubmit={savePw}>
+        <h2 className="h3">{tr('pAccount.53', 'تغییر رمز عبور')}</h2>
+        <div className="form__row">
+          <label>{tr('pAccount.54', 'رمز جدید')}<input className="input" type="password" dir="ltr" minLength={8} autoComplete="new-password" value={pw.a} onChange={(e) => setPw({ ...pw, a: e.target.value })} /></label>
+          <label>{tr('pSignup.8', 'تکرار رمز عبور')}<input className="input" type="password" dir="ltr" minLength={8} autoComplete="new-password" value={pw.b} onChange={(e) => setPw({ ...pw, b: e.target.value })} /></label>
+        </div>
+        <button className="btn btn--ghost btn--sm">{tr('pAccount.55', 'تغییر رمز')}</button>
+      </form>
+    </div>
   );
 }
 
-const blank = { label: '', full_name: '', phone: '', city: '', address: '', postal_code: '', is_default: false };
+const blank = { label: '', full_name: '', phone: '', province: '', city: '', address: '', postal_code: '', is_default: false };
 
 function Addresses() {
   const { user } = useAuth();
@@ -46,7 +86,7 @@ function Addresses() {
     e.preventDefault();
     if (!f || !user) return;
     setBusy(true);
-    const row = { label: f.label.trim() || null, full_name: f.full_name.trim(), phone: f.phone.trim(), city: f.city.trim(), address: f.address.trim(), postal_code: f.postal_code.trim() || null, is_default: f.is_default };
+    const row = { label: f.label.trim() || null, full_name: f.full_name.trim(), phone: f.phone.trim(), province: f.province || null, city: f.city.trim(), address: f.address.trim(), postal_code: f.postal_code.trim() || null, is_default: f.is_default };
     try {
       if (f.id) await q(supabase.from('addresses').update(row).eq('id', f.id));
       else await q(supabase.from('addresses').insert({ ...row, user_id: user.id }));
@@ -71,9 +111,9 @@ function Addresses() {
             <li key={a.id} className="addr">
               <p>{a.label ? <strong>{a.label}</strong> : null}{a.is_default ? <span className="pill">{tr('pAccount.8', 'پیش‌فرض')}</span> : null}</p>
               <p>{a.full_name} · <span dir="ltr">{a.phone}</span></p>
-              <p className="muted">{a.city}{SEP}{a.address}{a.postal_code ? ` — ${a.postal_code}` : ''}</p>
+              <p className="muted">{a.province ? `${a.province}${SEP}` : ''}{a.city}{SEP}{a.address}{a.postal_code ? ` — ${a.postal_code}` : ''}</p>
               <p className="actions">
-                <button className="link" onClick={() => setF({ ...a, label: a.label ?? '', postal_code: a.postal_code ?? '' })}>{tr('pAccount.9', 'ویرایش')}</button>
+                <button className="link" onClick={() => setF({ ...a, label: a.label ?? '', province: a.province ?? '', postal_code: a.postal_code ?? '' })}>{tr('pAccount.9', 'ویرایش')}</button>
                 {!a.is_default ? <button className="link" onClick={() => void makeDefault(a.id)}>{tr('pAccount.10', 'پیش‌فرض کن')}</button> : null}
                 <button className="link link--danger" onClick={() => void del(a.id)}>{tr('pAccount.11', 'حذف')}</button>
               </p>
@@ -89,6 +129,7 @@ function Addresses() {
             <label>{tr('pAccount.17', 'نام گیرنده')}<input className="input" required maxLength={120} value={f.full_name} onChange={set('full_name')} /></label>
             <label>{tr('pAccount.18', 'تلفن')}<input className="input" required dir="ltr" maxLength={30} value={f.phone} onChange={set('phone')} /></label>
           </div>
+          <label>{tr('pSignup.18', 'استان')}<select className="select" required value={f.province} onChange={set('province')}><option value="">—</option>{PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
           <div className="form__row">
             <label>{tr('pAccount.19', 'شهر')}<input className="input" required maxLength={80} value={f.city} onChange={set('city')} /></label>
             <label>{tr('pAccount.20', 'کد پستی')}<input className="input" dir="ltr" maxLength={20} value={f.postal_code} onChange={set('postal_code')} /></label>

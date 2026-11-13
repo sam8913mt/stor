@@ -90,11 +90,11 @@ export const HOME: SettingField[] = [
 ];
 
 export const SMS: SettingField[] = [
-  { key: 'sms_enabled', label: 'ارسال پیامک فعال باشد', type: 'bool', private: true },
+  { key: 'sms_enabled', label: 'ارسال پیامک فعال باشد (فعلاً خاموش)', type: 'bool', private: true },
   { key: 'sms_provider', label: 'سامانه پیامکی', type: 'select', private: true, options: [{ value: 'none', label: 'هنوز انتخاب نشده' }, { value: 'kavenegar', label: 'کاوه‌نگار' }, { value: 'smsir', label: 'SMS.ir' }, { value: 'melipayamak', label: 'ملی‌پیامک' }] },
   { key: 'sms_sender', label: 'شماره خط ارسال‌کننده', ltr: true, private: true, help: 'همان خط اختصاصی که از سامانه پیامکی گرفته‌اید' },
   { key: 'sms_admin_notify', label: 'شماره موبایل مدیر برای پیامک سفارش جدید', ltr: true, private: true, help: 'خالی = ارسال نشود' },
-  { key: 'sms_otp_enabled', label: 'ورود مشتریان با کد پیامکی (بعد از وصل‌شدن هوک ارسال پیامک در Supabase روشن کنید)', type: 'bool' },
+  { key: 'sms_otp_enabled', label: 'ورود با کد پیامکی (فعلاً خاموش بماند تا سامانه پیامکی و هوک Supabase وصل شود)', type: 'bool' },
 ];
 
 export const EMAIL: SettingField[] = [

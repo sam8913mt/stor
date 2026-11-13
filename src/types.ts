@@ -21,7 +21,11 @@ export interface Product {
   category?: { name_fa: string; name_en?: string | null; slug: string } | null;
   variants?: Variant[]; images?: ProductImage[];
 }
-export interface Profile { id: string; email: string | null; full_name: string | null; phone: string | null; created_at: string }
+export interface Profile {
+  id: string; email: string | null; full_name: string | null; phone: string | null; created_at: string;
+  first_name?: string | null; last_name?: string | null; national_id?: string | null; birth_date?: string | null; gender?: 'female' | 'male' | 'other' | null;
+  marketing_sms_optin?: boolean; accepted_terms_at?: string | null;
+}
 export interface OrderItem {
   id: string; order_id: string; product_id: string | null; variant_id: string | null; title: string; sku: string;
   color: string | null; size: string | null; unit_price: number; qty: number;
@@ -33,7 +37,7 @@ export interface Order {
   shipping: Shipping; note: string | null; created_at: string; locale?: string; order_items?: OrderItem[];
 }
 export interface Address {
-  id: string; user_id: string; label: string | null; full_name: string; phone: string; city: string; address: string;
+  id: string; user_id: string; label: string | null; full_name: string; phone: string; province?: string | null; city: string; address: string;
   postal_code: string | null; is_default: boolean;
 }
 export interface PaymentProvider {

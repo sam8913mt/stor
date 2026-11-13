@@ -134,6 +134,18 @@ body { color: var(--deep); background:
 .gate { display: grid; place-items: center; min-height: 52vh; padding-block: 48px; }
 .gate__actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 8px; }
 
+/* full registration form */
+.authcard--wide { width: min(100%, 680px); }
+.signup { gap: 18px; }
+.signup fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px 18px; display: grid; gap: 12px; background: rgba(255, 255, 255, .45); }
+.signup label, .account__forms label { color: var(--stone); font-size: 13.5px; display: grid; gap: 6px; }
+.signup .lbl { margin: 0; }
+.signup legend { padding-inline: 8px; color: var(--teal); font-weight: 600; font-size: 14px; }
+.signup .form__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.chk { display: flex; align-items: flex-start; gap: 10px; line-height: 1.8; } .chk input { margin-top: 7px; accent-color: var(--coral); width: 18px; height: 18px; }
+.account__forms { display: grid; gap: 36px; }
+.form__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+
 /* sign-in method switch */
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(38, 70, 83, .08); }
 .seg button { padding: 9px 12px; border-radius: 999px; font-weight: 500; color: var(--stone); transition: background .25s, color .25s, box-shadow .25s; }

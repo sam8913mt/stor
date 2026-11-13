@@ -196,6 +196,15 @@ export function createClient(url: string, key: string, opts?: { auth?: { persist
         return { data: { user: r.json?.user ?? r.json, session: null }, error: null };
       } catch (e) { return { data: { user: null, session: null }, error: netErr(e) }; }
     },
+    async updateUser(c: { password?: string }) {
+      try {
+        const r = await fetch(`${core.url}/auth/v1/user`, { method: 'PUT', headers: await core.headers({ 'Content-Type': 'application/json' }), body: JSON.stringify(c) });
+        const j = await readJson(r);
+        if (!r.ok) return { data: { user: null }, error: authErr(j, r.status) };
+        if (core.session && j?.id) core.setSession({ ...core.session, user: j }, 'USER_UPDATED');
+        return { data: { user: j }, error: null };
+      } catch (e) { return { data: { user: null }, error: netErr(e) }; }
+    },
     /** Sends a one-time code by SMS (needs the Supabase "Send SMS" hook / provider). */
     async signInWithOtp(c: { phone: string }) {
       try {

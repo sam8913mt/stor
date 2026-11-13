@@ -1,3 +1,4 @@
+import { PROVINCES } from '../lib/iran';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { q } from '../lib/api';
@@ -20,7 +21,7 @@ export default function Checkout() {
   const nav = useNavigate();
   const providers = useAsync(() => q<PaymentProvider[]>(supabase.from('payment_providers').select('*').eq('is_enabled', true).order('sort_order')), []);
   const addrs = useAsync(() => (user ? q<Address[]>(supabase.from('addresses').select('*').order('is_default', { ascending: false }).order('created_at')) : Promise.resolve([] as Address[])), [user?.id]);
-  const [f, setF] = useState({ full_name: '', phone: '', city: '', address: '', postal_code: '', note: '' });
+  const [f, setF] = useState({ full_name: '', phone: '', province: '', city: '', address: '', postal_code: '', note: '' });
   const [addrId, setAddrId] = useState<string>('new');
   const [save, setSave] = useState(false);
   const [pay, setPay] = useState('');
@@ -29,7 +30,7 @@ export default function Checkout() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
-  const pick = (a: Address) => { setAddrId(a.id); setF((x) => ({ ...x, full_name: a.full_name, phone: a.phone, city: a.city, address: a.address, postal_code: a.postal_code ?? '' })); };
+  const pick = (a: Address) => { setAddrId(a.id); setF((x) => ({ ...x, full_name: a.full_name, phone: a.phone, province: a.province ?? '', city: a.city, address: a.address, postal_code: a.postal_code ?? '' })); };
   useEffect(() => { if (profile && addrId === 'new') setF((x) => ({ ...x, full_name: x.full_name || profile.full_name || '', phone: x.phone || profile.phone || '' })); }, [profile]);
   useEffect(() => { const d = addrs.data?.find((a) => a.is_default) ?? addrs.data?.[0]; if (d && addrId === 'new' && !f.address) pick(d); }, [addrs.data]);
   useEffect(() => { if (!pay && providers.data?.length) setPay(providers.data[0].key); }, [providers.data]);
@@ -62,14 +63,14 @@ export default function Checkout() {
     setErr(''); setBusy(true);
     const { data, error } = await supabase.rpc('place_order', {
       p_items: lines.map((l) => ({ variant_id: l.variantId, qty: l.qty })),
-      p_shipping: { full_name: f.full_name, phone: f.phone, city: f.city, address: f.address, postal_code: f.postal_code },
+      p_shipping: { full_name: f.full_name, phone: f.phone, city: f.province ? `${f.province} - ${f.city}` : f.city, address: f.address, postal_code: f.postal_code },
       p_coupon: coupon?.code ?? null, p_payment: pay, p_note: f.note || null, p_locale: LANG,
     });
     if (error) { setBusy(false); setErr(errorFa(error.message)); return; }
     const order = data as { id: string; order_number: string };
     clear();
     if (save && addrId === 'new') {
-      await supabase.from('addresses').insert({ user_id: user.id, full_name: f.full_name, phone: f.phone, city: f.city, address: f.address, postal_code: f.postal_code || null });
+      await supabase.from('addresses').insert({ user_id: user.id, full_name: f.full_name, phone: f.phone, province: f.province || null, city: f.city, address: f.address, postal_code: f.postal_code || null });
     }
     kickEmailQueue();
     if (ONLINE_PROVIDERS.includes(pay)) {
@@ -101,6 +102,7 @@ export default function Checkout() {
             <label>{tr('pCheckout.14', 'تلفن همراه')}<input className="input" required dir="ltr" inputMode="tel" value={f.phone} onChange={set('phone')} autoComplete="tel" /></label>
           </div>
           <div className="form__row">
+            <label>{tr('pSignup.18', 'استان')}<select className="select" required value={f.province} onChange={set('province')}><option value="">—</option>{PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
             <label>{tr('pCheckout.15', 'شهر')}<input className="input" required value={f.city} onChange={set('city')} autoComplete="address-level2" /></label>
             <label>{tr('pCheckout.16', 'کد پستی')}<input className="input" dir="ltr" inputMode="numeric" value={f.postal_code} onChange={set('postal_code')} autoComplete="postal-code" /></label>
           </div>

@@ -29,7 +29,7 @@ export default function AdminSms() {
     if (status) qb = qb.eq('status', status);
     return qPage<Row>(qb.order('created_at', { ascending: false }).range((page - 1) * PER, page * PER - 1));
   }, [page, status]);
-  const audience = useAsync(async () => { const r = await supabase.from('profiles').select('id', { count: 'exact' }).neq('phone', '').limit(1); return r.count ?? 0; }, []);
+  const audience = useAsync(async () => { const r = await supabase.from('profiles').select('id', { count: 'exact' }).neq('phone', '').eq('marketing_sms_optin', true).limit(1); return r.count ?? 0; }, []);
 
   const run = async (kind: 'process' | 'test' | 'campaign') => {
     setBusy(kind);
@@ -61,7 +61,7 @@ export default function AdminSms() {
       <Can perm="marketing.manage">
         <div className="panel form">
           <h2 className="h4">پیامک تبلیغاتی به مشتریان</h2>
-          <p className="muted">گیرندگان: {(audience.data ?? 0).toLocaleString(LOC)} مشتری با شماره موبایل. فقط برای مشتریانی بفرستید که با دریافت پیام تبلیغاتی موافق‌اند و از خط تبلیغاتی مجاز استفاده کنید.</p>
+          <p className="muted">گیرندگان: {(audience.data ?? 0).toLocaleString(LOC)} مشتری که هنگام ثبت‌نام با دریافت پیامک تبلیغاتی موافقت کرده‌اند (فقط به همین‌ها ارسال می‌شود). از خط تبلیغاتی مجاز استفاده کنید.</p>
           <textarea className="textarea" rows={4} maxLength={500} placeholder="متن پیامک…" value={msg} onChange={(e) => setMsg(e.target.value)} aria-label="متن پیامک" />
           <div className="actions">
             <span className="muted">{msg.length.toLocaleString(LOC)} نویسه · حدود {parts.toLocaleString(LOC)} بخش پیامک برای هر نفر</span>

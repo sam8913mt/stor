@@ -40,7 +40,7 @@ export default function App() {
                 <Route path="order-success/:number" element={<RequireAuth><OrderSuccess /></RequireAuth>} />
                 <Route path="wishlist" element={<LoginGate kind="wishlist"><Wishlist /></LoginGate>} />
                 <Route path="login" element={<Auth />} />
-                <Route path="account/*" element={<RequireAuth><Account /></RequireAuth>} />
+                <Route path="account/*" element={<LoginGate kind="account"><Account /></LoginGate>} />
                 <Route path="p/:slug" element={<CmsPage />} />
                 <Route path="*" element={<NotFound />} />
               </Route>
