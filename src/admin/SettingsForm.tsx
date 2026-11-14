@@ -70,6 +70,7 @@ const STORE: SettingField[] = [
   { key: 'announcement_en', label: tr('aSettingsForm.9', 'نوار اعلان (انگلیسی)'), ltr: true },
   { key: 'shipping_fee', label: tr('aSettingsForm.10', 'هزینه ارسال (تومان)'), type: 'number' },
   { key: 'free_shipping_threshold', label: tr('aSettingsForm.11', 'ارسال رایگان از مبلغ (تومان)'), type: 'number', help: tr('aSettingsForm.12', '۰ = غیرفعال') },
+  { key: 'size_guide', label: 'جدول راهنمای سایز', type: 'textarea', ltr: true, help: 'هر خط یک سایز: S|دور سینه|دور کمر|دور باسن (سانتی‌متر). خالی = جدول پیش‌فرض.' },
   { key: 'bank_card_info', label: tr('aSettingsForm.13', 'اطلاعات کارت/حساب برای پرداخت بانکی'), type: 'textarea', private: true, help: tr('aSettingsForm.14', 'فقط برای کاربران واردشده در مرحله‌ی پرداخت نمایش داده می‌شود.') },
   { key: 'contact_phone', label: tr('aSettingsForm.15', 'تلفن تماس'), ltr: true },
   { key: 'contact_email', label: tr('aSettingsForm.16', 'ایمیل تماس'), ltr: true },

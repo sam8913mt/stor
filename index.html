@@ -15,9 +15,15 @@
         }
       })(window.location);
     </script>
+    <script>
+      // apply the saved (or system) colour scheme before first paint
+      try { var t = localStorage.getItem('aram.theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}
+    </script>
     <title>ARAM</title>
     <meta name="description" content="ARAM — quiet luxury fashion." />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <link rel="stylesheet" href="assets/app.css" />
     <!-- Fonts are optional: if Google Fonts is slow or blocked the site still renders with system fonts. -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Vazirmatn:wght@200;300;400;500;600&display=swap" media="print" onload="this.media='all'" />
@@ -27,5 +33,8 @@
     <noscript>This store needs JavaScript enabled. / برای نمایش فروشگاه باید جاوااسکریپت فعال باشد.</noscript>
     <script src="config.js"></script>
     <script src="assets/app.js"></script>
+    <script>
+      if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(function () {});
+    </script>
   </body>
 </html>

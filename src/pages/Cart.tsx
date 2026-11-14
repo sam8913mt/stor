@@ -1,3 +1,4 @@
+import { Steps } from '../components/Extras';
 import { Link } from 'react-router-dom';
 import { useCart, useSettings } from '../context';
 import { useTitle } from '../hooks';
@@ -15,6 +16,7 @@ export default function Cart() {
   const free = s.free_shipping_threshold > 0 && subtotal >= s.free_shipping_threshold;
   return (
     <div className="wrap cart">
+      <Steps current={1} />
       <h1 className="h1">{tr('pCart.5', 'سبد خرید')}</h1>
       <div className="cart__grid">
         <ul className="cart__lines">

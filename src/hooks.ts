@@ -57,3 +57,27 @@ export function useDebounced<T>(value: T, ms = 350): T {
   useEffect(() => { const id = setTimeout(() => setV(value), ms); return () => clearTimeout(id); }, [value, ms]);
   return v;
 }
+
+
+/** Per-page SEO: meta description, Open Graph tags and optional JSON-LD (e.g. schema.org Product). */
+export function useSeo(o: { description?: string; image?: string; jsonLd?: Record<string, unknown> | null }) {
+  const json = o.jsonLd ? JSON.stringify(o.jsonLd) : '';
+  useEffect(() => {
+    const meta = (attr: 'name' | 'property', key: string, content?: string) => {
+      if (!content) return;
+      let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+      if (!el) { el = document.createElement('meta'); el.setAttribute(attr, key); document.head.appendChild(el); }
+      el.setAttribute('content', content);
+    };
+    const desc = o.description?.replace(/\s+/g, ' ').trim().slice(0, 300);
+    meta('name', 'description', desc);
+    meta('property', 'og:title', document.title);
+    meta('property', 'og:description', desc);
+    meta('property', 'og:image', o.image);
+    meta('property', 'og:type', json ? 'product' : 'website');
+    let ld = document.getElementById('ld-json');
+    if (json) { if (!ld) { ld = document.createElement('script'); ld.id = 'ld-json'; ld.setAttribute('type', 'application/ld+json'); document.head.appendChild(ld); } ld.textContent = json; }
+    else ld?.remove();
+    return () => { document.getElementById('ld-json')?.remove(); };
+  }, [o.description, o.image, json]);
+}

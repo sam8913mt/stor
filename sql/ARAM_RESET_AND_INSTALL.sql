@@ -15,9 +15,9 @@ begin
   for r in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.proname in ('has_perm','is_admin','my_permissions','handle_new_user','touch_updated_at','log_change',
              'validate_coupon','admin_stats','addresses_guard','enqueue_order_email','orders_notify','restore_stock_on_cancel','place_order',
-             'cancel_my_order','mark_order_paid','norm_fa','norm_phone','search_products','catalog_facets','orders_immutable','protect_super_admin','aram_require')
+             'cancel_my_order','mark_order_paid','norm_fa','norm_phone','notify_back_in_stock','admin_set_customer_password','search_products','catalog_facets','orders_immutable','protect_super_admin','aram_require')
   loop execute format('drop function if exists %s cascade', r.sig); end loop;
-  drop table if exists public.activity_logs, public.email_outbox, public.sms_outbox, public.payments, public.addresses, public.order_items, public.orders,
+  drop table if exists public.activity_logs, public.email_outbox, public.sms_outbox, public.stock_alerts, public.payments, public.addresses, public.order_items, public.orders,
     public.reviews, public.wishlist_items, public.collection_products, public.product_images, public.product_variants, public.products,
     public.collections, public.categories, public.coupons, public.cms_pages, public.settings, public.admin_users, public.admin_roles,
     public.payment_providers, public.profiles, public.aram_migrations cascade;
@@ -617,6 +617,10 @@ on conflict (key) do nothing;
 
 create trigger log_payment_providers after insert or update or delete on public.payment_providers for each row execute function public.log_change('key');
 
+-- ── Shipment tracking (carrier + tracking code, shown to the customer and sent in the "shipped" SMS) ──
+alter table public.orders add column if not exists tracking_code text check (tracking_code is null or char_length(tracking_code) <= 60),
+  add column if not exists tracking_carrier text check (tracking_carrier is null or char_length(tracking_carrier) <= 40);
+
 -- ── SMS (customers are notified by SMS, never by email) ──
 create or replace function public.norm_phone(p text) returns text
 language sql immutable set search_path = public as $$
@@ -662,7 +666,8 @@ begin
   select * into o from public.orders where id = p_order;
   if not found then return; end if;
   d := jsonb_build_object('order_number', o.order_number, 'total', o.total, 'status', o.status, 'payment_status', o.payment_status,
-                          'payment_method', o.payment_method, 'name', o.shipping ->> 'full_name');
+                          'payment_method', o.payment_method, 'name', o.shipping ->> 'full_name',
+                          'tracking_code', o.tracking_code, 'carrier', o.tracking_carrier);
   -- the customer is notified by SMS: phone of the account, else the phone typed at checkout
   select coalesce(public.norm_phone(p.phone), public.norm_phone(o.shipping ->> 'phone')) into ph from public.profiles p where p.id = o.user_id;
   if ph is null then ph := public.norm_phone(o.shipping ->> 'phone'); end if;
@@ -1084,6 +1089,73 @@ insert into public.cms_pages (slug, title_fa, body_fa, is_published) values
   ('terms', 'قوانین و مقررات', E'## شرایط استفاده\nبا ثبت‌نام و خرید از این فروشگاه، شرایط زیر را می‌پذیرید.\n\n## سفارش و پرداخت\nقیمت‌ها به تومان است و سفارش پس از تأیید و پرداخت قطعی می‌شود.\n\n## بازگشت کالا\nشرایط بازگشت در صفحه «ارسال و بازگشت» آمده است.\n\n(این متن نمونه است؛ از بخش مدیریت محتوا آن را ویرایش کنید.)', true),
   ('privacy', 'حریم خصوصی', E'## اطلاعاتی که نگه می‌داریم\nنام، شماره موبایل و نشانی شما فقط برای ثبت و ارسال سفارش و پشتیبانی استفاده می‌شود و به شخص ثالث فروخته نمی‌شود.\n\n## پیامک تبلیغاتی\nپیامک تبلیغاتی فقط در صورت موافقت شما ارسال می‌شود و هر زمان می‌توانید آن را در حساب کاربری خاموش کنید.\n\n(این متن نمونه است؛ از بخش مدیریت محتوا آن را ویرایش کنید.)', true)
 on conflict (slug) do nothing;
+
+-- ── Store features: try-on photo, back-in-stock alerts ──
+-- (tracking_code / tracking_carrier already exist from the order-tracking step)
+alter table public.products add column if not exists tryon_url text;
+
+alter table public.sms_outbox drop constraint if exists sms_outbox_template_check;
+alter table public.sms_outbox add constraint sms_outbox_template_check
+  check (template in ('order_placed','order_status','payment_received','admin_new_order','campaign','back_in_stock'));
+
+create table if not exists public.stock_alerts (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null references public.products(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  notified_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (product_id, user_id)
+);
+alter table public.stock_alerts enable row level security;
+drop policy if exists "own alerts" on public.stock_alerts;
+create policy "own alerts" on public.stock_alerts for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "staff alerts read" on public.stock_alerts;
+create policy "staff alerts read" on public.stock_alerts for select to authenticated using (public.has_perm('products.manage'));
+revoke all on public.stock_alerts from anon;
+
+-- when a sold-out product gets stock again, everyone who asked is told by SMS (once)
+create or replace function public.notify_back_in_stock() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare t text;
+begin
+  if coalesce(old.stock, 0) > 0 or new.stock <= 0 then return new; end if;
+  select title_fa into t from public.products where id = new.product_id;
+  insert into public.sms_outbox (to_phone, template, locale, data)
+    select public.norm_phone(p.phone), 'back_in_stock', 'fa', jsonb_build_object('title', t, 'slug', (select slug from public.products where id = new.product_id))
+      from public.stock_alerts a join public.profiles p on p.id = a.user_id
+     where a.product_id = new.product_id and a.notified_at is null and public.norm_phone(p.phone) is not null;
+  update public.stock_alerts set notified_at = now() where product_id = new.product_id and notified_at is null;
+  return new;
+end $$;
+drop trigger if exists variants_back_in_stock on public.product_variants;
+create trigger variants_back_in_stock after update of stock on public.product_variants for each row execute function public.notify_back_in_stock();
+
+create or replace function public.enqueue_order_email(p_order uuid, p_template text) returns void
+language plpgsql security definer set search_path = public as $$
+declare o public.orders; ph text; adm text; admp text; d jsonb;
+begin
+  select * into o from public.orders where id = p_order;
+  if not found then return; end if;
+  d := jsonb_build_object('order_number', o.order_number, 'total', o.total, 'status', o.status, 'payment_status', o.payment_status,
+                          'payment_method', o.payment_method, 'name', o.shipping ->> 'full_name',
+                          'tracking_code', o.tracking_code, 'carrier', o.tracking_carrier);
+  select coalesce(public.norm_phone(p.phone), public.norm_phone(o.shipping ->> 'phone')) into ph from public.profiles p where p.id = o.user_id;
+  if ph is null then ph := public.norm_phone(o.shipping ->> 'phone'); end if;
+  if ph is not null then
+    insert into public.sms_outbox (to_phone, template, locale, data) values (ph, p_template, o.locale, d);
+  end if;
+  if p_template = 'order_placed' then
+    select value #>> '{}' into adm from public.settings where key = 'email_admin_notify';
+    if adm is not null and adm <> '' then
+      insert into public.email_outbox (to_email, template, locale, data) values (adm, 'admin_new_order', 'fa', d);
+    end if;
+    select public.norm_phone(value #>> '{}') into admp from public.settings where key = 'sms_admin_notify';
+    if admp is not null then
+      insert into public.sms_outbox (to_phone, template, locale, data) values (admp, 'admin_new_order', 'fa', d);
+    end if;
+  end if;
+end $$;
+revoke all on function public.enqueue_order_email(uuid, text) from public, anon, authenticated;
 
 -- Existing sign-ups (made before the install) get their profile row too
 insert into public.profiles (id, email, full_name, phone)

@@ -3,12 +3,14 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { activeVariants, fetchProductBySlug, q, searchProducts, variantPrice } from '../lib/api';
 import { supabase } from '../lib/supabase';
-import { useAsync, useTitle } from '../hooks';
+import { useAsync, useSeo, useTitle } from '../hooks';
+import { SizeGuide } from '../components/Extras';
 import { errorFa, dateFa, price } from '../lib/format';
 import { useAuth, useCart, useGate, useToast, useWishlist } from '../context';
 import { ProductVisual, ProductGrid } from '../components/ProductCard';
 import { Crumbs, Empty, ErrorBox, Loading } from '../components/ui';
-import { IconHeart, IconMinus, IconPlus } from '../components/Icons';
+import { IconHanger, IconHeart, IconMinus, IconPlus, IconReturn, IconShield, IconTruck } from '../components/Icons';
+import { useFitting } from '../fitting';
 import type { Review } from '../types';
 
 const Stars = ({ n }: { n: number }) => <span className="stars" role="img" aria-label={tr('pProduct.1', '{0} از ۵', [n])}>{'★'.repeat(n)}<span>{'★'.repeat(5 - n)}</span></span>;
@@ -30,8 +32,18 @@ export default function Product() {
   const cart = useCart();
   const wish = useWishlist();
   const gate = useGate();
+  const fit = useFitting();
   const toast = useToast();
+  const [guide, setGuide] = useState(false);
   useTitle(p ? lf(p, 'title') : tr('pProduct.2', 'محصول'));
+  useSeo({
+    description: p ? (lf(p, 'description') || `${lf(p, 'title')} — ${tr('pProduct.62', 'خرید آنلاین با ارسال به سراسر ایران')}`) : undefined,
+    jsonLd: p ? {
+      '@context': 'https://schema.org', '@type': 'Product', name: lf(p, 'title'), description: lf(p, 'description') || undefined, sku: p.slug,
+      offers: { '@type': 'Offer', priceCurrency: 'IRT', price: Math.min(...(activeVariants(p).length ? activeVariants(p).map((v) => variantPrice(p, v)) : [p.base_price])),
+        availability: activeVariants(p).some((v) => v.stock > 0) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' },
+    } : null,
+  });
 
   useEffect(() => {
     if (!p) return;
@@ -85,7 +97,7 @@ export default function Product() {
           ) : null}
 
           <div className="pdp__opt">
-            <p>{tr('pProduct.12', 'سایز')}{size ? <>: <strong>{size}</strong></> : null}</p>
+            <p className="pdp__sizehead"><span>{tr('pProduct.12', 'سایز')}{size ? <>: <strong>{size}</strong></> : null}</span><button type="button" className="link" onClick={() => setGuide(true)}>{tr('cSize.1', 'راهنمای سایز')}</button></p>
             <div className="sizes">
               {sizesForColor.map((v) => (
                 <button key={v.id} className={`opt opt--sq${v.size === size ? ' is-on' : ''}`} disabled={v.stock === 0} aria-pressed={v.size === size} onClick={() => setSize(v.size)}>{v.size}</button>
@@ -93,6 +105,7 @@ export default function Product() {
             </div>
             {variant && variant.stock > 0 && variant.stock <= 3 ? <p className="note">{tr('pProduct.13', 'فقط')} {variant.stock.toLocaleString(LOC)} {tr('pProduct.14', 'عدد باقی مانده')}</p> : null}
             {!vs.length || vs.every((v) => v.stock === 0) ? <p className="note">{tr('pProduct.15', 'این محصول فعلاً ناموجود است.')}</p> : null}
+            {!vs.length || vs.every((v) => v.stock === 0) || (variant && variant.stock === 0) ? <NotifyMe productId={p.id} /> : null}
           </div>
 
           <div className="pdp__buy">
@@ -104,6 +117,15 @@ export default function Product() {
             <button className="btn btn--grow" onClick={() => gate(add)} disabled={!vs.length || vs.every((v) => v.stock === 0)}>{tr('pProduct.19', 'افزودن به سبد خرید')}</button>
             <button className={`btn btn--ghost btn--icon${liked ? ' is-on' : ''}`} onClick={() => gate(() => void wish.toggle(p.id))} aria-pressed={liked} aria-label={tr('pProduct.20', 'علاقه‌مندی')}><IconHeart /></button>
           </div>
+
+          <button className={`btn btn--ghost btn--block fit__cta${fit.isWorn(p.id) ? ' is-on' : ''}`} onClick={() => fit.toggle(p)}><IconHanger />{fit.isWorn(p.id) ? tr('pProduct.60', 'روی مانکن پوشیده شد — دیدن اتاق پرو') : tr('pProduct.61', 'ببین روی مانکن چطور می‌نشیند')}</button>
+
+          <ul className="pdp__trust">
+            <li><IconTruck /><span>{tr('pProduct.63', 'ارسال سریع به سراسر ایران')}</span></li>
+            <li><IconShield /><span>{tr('pProduct.64', 'ضمانت اصالت و سلامت کالا')}</span></li>
+            <li><IconReturn /><span>{tr('pProduct.65', '۷ روز مهلت بازگشت')}</span></li>
+          </ul>
+          {guide ? <SizeGuide onClose={() => setGuide(false)} /> : null}
 
           <div className="acc">
             {lf(p, 'description') ? <details open><summary>{tr('pProduct.21', 'توضیحات')}</summary><p>{lf(p, 'description')}</p></details> : null}
@@ -157,7 +179,7 @@ function Reviews({ productId }: { productId: string }) {
           <Stars n={r.rating} />
           {r.title ? <h3 className="h4">{r.title}</h3> : null}
           {r.body ? <p>{r.body}</p> : null}
-          <small className="muted">{r.author_name} · {dateFa(r.created_at)}</small>
+          <small className="muted">{r.author_name} · {dateFa(r.created_at)} <span className="verified">✓ {tr('pProduct.66', 'خرید تأییدشده')}</span></small>
         </article>
       )) : <p className="muted">{tr('pProduct.34', 'هنوز نظری ثبت نشده است.')}</p>}
 
@@ -176,4 +198,23 @@ function Reviews({ productId }: { productId: string }) {
         ) : <p className="muted">{tr('pProduct.48', 'فقط خریداران این محصول می‌توانند نظر بدهند.')}</p>}
     </section>
   );
+}
+
+
+/** "Tell me when it is back": one SMS when any variant of a sold-out product gets stock again (needs sql/14_store_features.sql). */
+function NotifyMe({ productId }: { productId: string }) {
+  const { user } = useAuth();
+  const gate = useGate();
+  const toast = useToast();
+  const mine = useAsync(() => (user ? q<{ id: string }[]>(supabase.from('stock_alerts').select('id').eq('product_id', productId)) : Promise.resolve([] as { id: string }[])), [productId, user?.id]);
+  const on = !!mine.data?.length;
+  const toggle = () => gate(async () => {
+    try {
+      if (on) await q(supabase.from('stock_alerts').delete().eq('product_id', productId));
+      else await q(supabase.from('stock_alerts').upsert({ product_id: productId, user_id: user!.id }, { onConflict: 'product_id,user_id' }));
+      mine.reload();
+      toast.push(on ? tr('pProduct.67', 'یادآوری لغو شد.') : tr('pProduct.68', 'وقتی موجود شد با پیامک خبرتان می‌کنیم.'));
+    } catch (e) { toast.push(errorFa((e as Error).message), 'err'); }
+  });
+  return <button className={`btn btn--ghost btn--sm${on ? ' is-on' : ''}`} onClick={toggle}>{on ? tr('pProduct.69', 'یادآوری فعال است (لغو)') : tr('pProduct.70', 'وقتی موجود شد خبرم کن')}</button>;
 }

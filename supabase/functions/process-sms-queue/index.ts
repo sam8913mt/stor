@@ -4,7 +4,7 @@
 import { admin, asUser, cors, getUser, json, timingSafeEqual } from '../_shared/lib.ts';
 import { sendSms, smsSettings } from '../_shared/sms.ts';
 
-type D = { order_number: string; total: number; status: string; name?: string };
+type D = { order_number: string; total: number; status: string; name?: string; tracking_code?: string | null; carrier?: string | null; title?: string };
 const STATUS: Record<string, Record<string, string>> = {
   fa: { pending: 'در انتظار تأیید', confirmed: 'تأیید شد', processing: 'در حال آماده‌سازی', shipped: 'ارسال شد', delivered: 'تحویل داده شد', cancelled: 'لغو شد' },
   en: { pending: 'pending', confirmed: 'confirmed', processing: 'processing', shipped: 'shipped', delivered: 'delivered', cancelled: 'cancelled' },
@@ -16,8 +16,12 @@ function render(tpl: string, locale: string, d: D, store: string, body: string |
   const st = STATUS[en ? 'en' : 'fa'][d.status] ?? d.status;
   switch (tpl) {
     case 'order_placed': return en ? `${store}: order ${d.order_number} received. Total ${total}. Thank you!` : `${store}: سفارش ${d.order_number} ثبت شد. مبلغ کل ${total}. سپاس از خرید شما.`;
-    case 'order_status': return en ? `${store}: order ${d.order_number} is now ${st}.` : `${store}: وضعیت سفارش ${d.order_number}: ${st}.`;
+    case 'order_status': {
+      const track = d.tracking_code ? (en ? ` Tracking${d.carrier ? ` (${d.carrier})` : ''}: ${d.tracking_code}.` : ` کد رهگیری${d.carrier ? ` (${d.carrier})` : ''}: ${d.tracking_code}`) : '';
+      return en ? `${store}: order ${d.order_number} is now ${st}.${track}` : `${store}: وضعیت سفارش ${d.order_number}: ${st}.${track}`;
+    }
     case 'payment_received': return en ? `${store}: payment of ${total} received for order ${d.order_number}.` : `${store}: پرداخت ${total} برای سفارش ${d.order_number} دریافت شد.`;
+    case 'back_in_stock': return `${store}: «${d.title ?? ''}» دوباره موجود شد. زود سفارش دهید!`;
     case 'admin_new_order': return `${store}: سفارش جدید ${d.order_number} — ${total} — ${d.name ?? ''}`;
     default: return '';
   }

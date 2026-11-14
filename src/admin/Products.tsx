@@ -1,6 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { imageUrl, invalidateCatalog, q, qPage, safeTerm } from '../lib/api';
+import { compressImage } from '../lib/image';
 import { supabase } from '../lib/supabase';
 import { useAsync, useDebounced } from '../hooks';
 import { LOC, tr } from '../i18n';
@@ -134,10 +135,11 @@ export function ProductEditor() {
     const files = Array.from(e.target.files ?? []); e.target.value = '';
     if (!files.length || isNew) return;
     for (const f of files) {
-      if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(f.type) || f.size > 3 * 1024 * 1024) { toast.push(tr('aProducts.21', '«{0}» نامعتبر است (فقط JPG/PNG/WebP/AVIF تا ۳ مگابایت).', [f.name]), 'err'); continue; }
-      const path = `${id}/${uid()}.${f.type.split('/')[1]}`;
+      if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(f.type) || f.size > 15 * 1024 * 1024) { toast.push(tr('aProducts.21', '«{0}» نامعتبر است (فقط JPG/PNG/WebP/AVIF تا ۳ مگابایت).', [f.name]), 'err'); continue; }
+      const img = await compressImage(f);
+      const path = `${id}/${uid()}.${img.ext}`;
       try {
-        const up = await supabase.storage.from('product-images').upload(path, f, { contentType: f.type, upsert: false });
+        const up = await supabase.storage.from('product-images').upload(path, img.blob, { contentType: img.type, upsert: false });
         if (up.error) throw up.error;
         await q(supabase.from('product_images').insert({ product_id: id, path, alt: p.title_fa, sort_order: images.length }));
       } catch (err) { toast.push(errorFa((err as Error).message), 'err'); }
@@ -222,10 +224,12 @@ export function ProductEditor() {
             <>
               <div className="imgs">{images.map((im) => <figure key={im.id}><img src={imageUrl(im.path)} alt={im.alt ?? ''} /><button type="button" className="link link--danger" onClick={() => void rmImage(im)}>{tr('aProducts.65', 'حذف')}</button></figure>)}</div>
               <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={upload} aria-label={tr('aProducts.66', 'آپلود تصویر')} />
-              <p className="muted small">{tr('aProducts.67', 'JPG/PNG/WebP/AVIF، حداکثر ۳ مگابایت. تصویر اول در کارت محصول نمایش داده می‌شود.')}</p>
+              <p className="muted small">{tr('aProducts.67', 'JPG/PNG/WebP/AVIF تا ۱۵ مگابایت؛ خودکار فشرده و به WebP تبدیل می‌شود. تصویر اول در کارت محصول نمایش داده می‌شود.')}</p>
             </>
           )}
         </div>
+
+        {!isNew ? <TryOnUploader productId={id} /> : null}
 
         <div className="form__actions">
           <button className="btn" disabled={busy}>{busy ? tr('aProducts.68', 'در حال ذخیره…') : tr('aProducts.69', 'ذخیره محصول')}</button>
@@ -233,5 +237,36 @@ export function ProductEditor() {
         </div>
       </form>
     </Can>
+  );
+}
+
+
+/** Optional garment photo with a transparent background (PNG/WebP). It is layered on the mannequin in the shop's fitting room. */
+function TryOnUploader({ productId }: { productId: string }) {
+  const toast = useToast();
+  const cur = useAsync(async () => (await q<{ tryon_url: string | null }[]>(supabase.from('products').select('tryon_url').eq('id', productId)))[0]?.tryon_url ?? null, [productId]);
+  const [busy, setBusy] = useState(false);
+  const pick = async (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = '';
+    if (!f) return;
+    if (!['image/png', 'image/webp'].includes(f.type)) { toast.push('فقط PNG یا WebP با پس‌زمینه شفاف.', 'err'); return; }
+    setBusy(true);
+    try {
+      const img = await compressImage(f, 1000, 0.9);
+      const path = `${productId}/tryon-${uid()}.${img.ext}`;
+      const up = await supabase.storage.from('product-images').upload(path, img.blob, { contentType: img.type, upsert: false });
+      if (up.error) throw up.error;
+      await q(supabase.from('products').update({ tryon_url: imageUrl(path) }).eq('id', productId));
+      invalidateCatalog(); cur.reload(); toast.push('تصویر اتاق پرو ذخیره شد.');
+    } catch (err) { toast.push(errorFa((err as Error).message), 'err'); } finally { setBusy(false); }
+  };
+  const clear = async () => { try { await q(supabase.from('products').update({ tryon_url: null }).eq('id', productId)); invalidateCatalog(); cur.reload(); } catch (err) { toast.push(errorFa((err as Error).message), 'err'); } };
+  return (
+    <div className="panel">
+      <h2 className="h4">تصویر اتاق پرو (اختیاری)</h2>
+      <p className="muted small">عکس خود لباس با پس‌زمینه شفاف (PNG/WebP)، از روبه‌رو و بدون مدل. اگر نگذارید، لباس به‌صورت طرح رنگی روی مانکن پوشانده می‌شود.</p>
+      {cur.data ? <figure className="imgs"><img src={cur.data} alt="" style={{ background: 'repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 50% / 16px 16px' }} /><button type="button" className="link link--danger" onClick={() => void clear()}>حذف</button></figure> : null}
+      <input type="file" accept="image/png,image/webp" onChange={pick} disabled={busy} aria-label="آپلود تصویر اتاق پرو" />
+    </div>
   );
 }

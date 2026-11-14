@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { AppProviders } from './context';
+import { FittingProvider } from './fitting';
 import { Layout } from './components/Layout';
 import { LoginGate, RequireAuth } from './components/Guards';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -26,6 +27,7 @@ export default function App() {
     <ErrorBoundary>
       <HashRouter>
         <AppProviders>
+          <FittingProvider>
           <Suspense fallback={<Loading />}>
             <Routes>
               <Route path="/admin/*" element={<Admin />} />
@@ -46,6 +48,7 @@ export default function App() {
               </Route>
             </Routes>
           </Suspense>
+          </FittingProvider>
         </AppProviders>
       </HashRouter>
     </ErrorBoundary>

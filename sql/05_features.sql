@@ -159,7 +159,8 @@ begin
   select * into o from public.orders where id = p_order;
   if not found then return; end if;
   d := jsonb_build_object('order_number', o.order_number, 'total', o.total, 'status', o.status, 'payment_status', o.payment_status,
-                          'payment_method', o.payment_method, 'name', o.shipping ->> 'full_name');
+                          'payment_method', o.payment_method, 'name', o.shipping ->> 'full_name',
+                          'tracking_code', o.tracking_code, 'carrier', o.tracking_carrier);
   -- the customer is notified by SMS: phone of the account, else the phone typed at checkout
   select coalesce(public.norm_phone(p.phone), public.norm_phone(o.shipping ->> 'phone')) into ph from public.profiles p where p.id = o.user_id;
   if ph is null then ph := public.norm_phone(o.shipping ->> 'phone'); end if;

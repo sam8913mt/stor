@@ -4,7 +4,8 @@ import { loadFacets, loadMeta, PAGE_SIZE, searchProducts } from '../lib/api';
 import { useAsync, useTitle } from '../hooks';
 import { LOC, lf, tr } from '../i18n';
 import { ProductGrid } from '../components/ProductCard';
-import { Crumbs, Drawer, Empty, ErrorBox, Loading, Pager } from '../components/ui';
+import { Crumbs, Drawer, Empty, ErrorBox, Pager } from '../components/ui';
+import { SkeletonGrid } from '../components/Extras';
 import { IconClose, IconFilter } from '../components/Icons';
 
 const SORTS: Record<string, string> = { new: tr('pShop.1', 'جدیدترین'), 'price-asc': tr('pShop.2', 'ارزان‌ترین'), 'price-desc': tr('pShop.3', 'گران‌ترین') };
@@ -117,7 +118,7 @@ export default function Shop({ pinned }: { pinned?: boolean }) {
       <div className="shop__layout">
         <aside className="shop__side" aria-label={tr('pShop.28', 'فیلترها')}>{filters}</aside>
         <div>
-          {res.loading && !res.data ? <Loading /> : res.error ? <ErrorBox error={res.error} retry={res.reload} /> : res.data && res.data.products.length ? (
+          {res.loading && !res.data ? <SkeletonGrid /> : res.error ? <ErrorBox error={res.error} retry={res.reload} /> : res.data && res.data.products.length ? (
             <div className={res.loading ? 'is-busy' : ''} aria-busy={res.loading}>
               <ProductGrid items={res.data.products} />
               <Pager page={page} total={total} size={PAGE_SIZE} onPage={goPage} />

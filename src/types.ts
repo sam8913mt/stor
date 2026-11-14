@@ -35,6 +35,7 @@ export interface Order {
   id: string; order_number: string; user_id: string; status: string; payment_method: string; payment_status: string;
   subtotal: number; discount: number; shipping_fee: number; total: number; coupon_code: string | null;
   shipping: Shipping; note: string | null; created_at: string; locale?: string; order_items?: OrderItem[];
+  tracking_code?: string | null; tracking_carrier?: string | null;
 }
 export interface Address {
   id: string; user_id: string; label: string | null; full_name: string; phone: string; province?: string | null; city: string; address: string;

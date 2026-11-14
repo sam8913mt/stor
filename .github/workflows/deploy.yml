@@ -30,7 +30,7 @@ jobs:
       - name: Assemble site (clean URLs, SPA fallback, config)
         run: |
           mkdir dist
-          cp -r index.html 404.html favicon.svg assets admin dist/
+          cp -r index.html 404.html favicon.svg manifest.webmanifest sw.js icons assets admin dist/
           # Supabase values: repository secrets if set, otherwise the committed config.js
           if [ -n "$VITE_SUPABASE_URL" ] && [ -n "$VITE_SUPABASE_ANON_KEY" ]; then
             jq -rn --arg u "$VITE_SUPABASE_URL" --arg k "$VITE_SUPABASE_ANON_KEY" '"window.ARAM_CONFIG = " + ({SUPABASE_URL: $u, SUPABASE_ANON_KEY: $k} | tojson) + ";"' > dist/config.js
@@ -44,6 +44,9 @@ jobs:
           [ -f CNAME ] && cp CNAME dist/CNAME || true
           sed -i "s/__KEEP__/$KEEP/" dist/404.html
           touch dist/.nojekyll
+          # sitemap.xml + robots.txt (custom domain from CNAME, otherwise the github.io address)
+          if [ -f CNAME ]; then export SITE_URL="https://$(head -n1 CNAME | tr -d '[:space:]')/"; elif [ "$KEEP" = "0" ]; then export SITE_URL="https://${REPO}/"; else export SITE_URL="https://${OWNER}.github.io/${REPO}/"; fi
+          node scripts/sitemap.mjs dist || true
           test -f dist/assets/app.js
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -145,10 +145,10 @@ function CartProvider({ children }: { children: ReactNode }) {
     lines,
     count: lines.reduce((s, l) => s + l.qty, 0),
     subtotal: lines.reduce((s, l) => s + l.qty * l.price, 0),
-    add: (l) => setLines((cur) => {
+    add: (l) => { setTimeout(() => window.dispatchEvent(new Event('aram:cart-added')), 0); setLines((cur) => {
       const hit = cur.find((x) => x.variantId === l.variantId);
       return hit ? cur.map((x) => x.variantId === l.variantId ? { ...x, qty: Math.min(10, x.qty + l.qty), price: l.price } : x) : [...cur, l];
-    }),
+    }); },
     setQty: (id, qty) => setLines((cur) => cur.map((x) => x.variantId === id ? { ...x, qty: Math.max(1, Math.min(10, qty)) } : x)),
     remove: (id) => setLines((cur) => cur.filter((x) => x.variantId !== id)),
     clear: () => setLines([]),
@@ -213,11 +213,13 @@ export interface StoreSettings {
   hero_title: string; hero_subtitle: string; hero_cta_label: string; hero_cta_link: string; statement: string;
   /** true once an SMS gateway is connected and the Supabase "Send SMS" hook is on: the login page then offers one-time codes */
   sms_otp_enabled: boolean;
+  /** optional size table, one row per line: S|86|68|94 */
+  size_guide: string;
 }
 const DEFAULTS: StoreSettings = {
   store_name: tr('context.1', 'آرام'), tagline: '', announcement: '', shipping_fee: 0, free_shipping_threshold: 0,
   contact_email: '', contact_phone: '', instagram: '', bank_card_info: '',
-  hero_title: tr('context.2', 'سکوت، زیباترین لباس است'), hero_subtitle: '', hero_cta_label: tr('context.3', 'مشاهده محصولات'), hero_cta_link: '/shop', statement: '', sms_otp_enabled: false,
+  hero_title: tr('context.2', 'سکوت، زیباترین لباس است'), hero_subtitle: '', hero_cta_label: tr('context.3', 'مشاهده محصولات'), hero_cta_link: '/shop', statement: '', sms_otp_enabled: false, size_guide: '',
 };
 const SettingsC = createContext<{ s: StoreSettings; reload: () => void }>({ s: DEFAULTS, reload: () => {} });
 export const useSettings = () => useContext(SettingsC);

@@ -171,6 +171,10 @@ function Orders() {
             </summary>
             <ul>{o.order_items?.map((i) => <li key={i.id}><span>{i.title} <small className="muted">{i.color} · {i.size} × {i.qty.toLocaleString(LOC)}</small></span><span>{price(i.unit_price * i.qty)}</span></li>)}</ul>
             <p className="muted small">{PAY_METHOD[o.payment_method]} · {PAY_STATUS[o.payment_status]}{o.discount ? tr('pAccount.31', ' · تخفیف {0}', [price(o.discount)]) : ''} {tr('pAccount.32', '· ارسال')} {o.shipping_fee ? price(o.shipping_fee) : tr('pAccount.33', 'رایگان')}</p>
+            {o.tracking_code ? (
+              <p className="note">{tr('pAccount.60', 'کد رهگیری')}{o.tracking_carrier ? ` (${o.tracking_carrier})` : ''}: <strong dir="ltr">{o.tracking_code}</strong>{' '}
+                <button type="button" className="link" onClick={() => { void navigator.clipboard?.writeText(o.tracking_code ?? ''); }}>{tr('pAccount.61', 'کپی')}</button></p>
+            ) : null}
             <p className="muted small">{tr('pAccount.34', 'تحویل به:')} {o.shipping.full_name}{SEP}{o.shipping.city}{SEP}{o.shipping.address}</p>
             {canPay || canCancel ? (
               <p className="actions">

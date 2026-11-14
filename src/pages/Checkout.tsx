@@ -1,3 +1,4 @@
+import { Steps } from '../components/Extras';
 import { PROVINCES } from '../lib/iran';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -82,6 +83,7 @@ export default function Checkout() {
 
   return (
     <div className="wrap cart">
+      <Steps current={2} />
       <h1 className="h1">{tr('pCheckout.9', 'ثبت سفارش')}</h1>
       <form className="cart__grid" onSubmit={submit}>
         <div className="form">
